@@ -43,6 +43,13 @@
       "when": 1795021079669,
       "tag": "0005_financeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795303402480,
+      "tag": "0006_relogio",
+      "breakpoints": true
     }
   ]
 }

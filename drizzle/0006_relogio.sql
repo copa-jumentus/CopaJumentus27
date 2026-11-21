@@ -1,0 +1,1 @@
+ALTER TABLE "partida" ADD COLUMN "relogio" jsonb;

@@ -122,7 +122,8 @@ test('sorteia T1 a T8', async () => {
 
 test('súmula: começa o jogo 1, lança gol com assistência e encerra', async () => {
   await irPara('/admin/partidas');
-  await page.getByRole('link', { name: 'Súmula / placar' }).first().click();
+  // Navega pelo endereço do link (o clique às vezes chega antes da página do dev server compilar).
+  await irPara(String(await page.getByRole('link', { name: 'Súmula / placar' }).first().getAttribute('href')));
   await page.getByRole('button', { name: 'Ao vivo', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Ao vivo', exact: true })).toHaveAttribute('aria-pressed', 'true');
 
@@ -139,11 +140,78 @@ test('súmula: começa o jogo 1, lança gol com assistência e encerra', async (
   await expect(page.getByRole('button', { name: 'Encerrada', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('modo mesário: cronômetro, lances com minuto, internet caindo e voltando, fim do jogo', async ({ browser, baseURL }) => {
+  const context = page.context();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await irPara('/admin/partidas');
+  const sumula2 = await page.getByRole('link', { name: 'Súmula / placar' }).nth(1).getAttribute('href');
+  expect(sumula2).toBeTruthy();
+  await irPara(String(sumula2).replace('/admin/partidas/', '/admin/mesario/'));
+  const conexao = page.getByTestId('conexao');
+  const cronometro = page.getByTestId('cronometro');
+
+  await page.getByRole('button', { name: 'Começar 1º tempo' }).click();
+  await expect(page.getByText('1º tempo', { exact: true })).toBeVisible();
+  await expect(conexao).toHaveText(/Online/);
+  await expect(cronometro).not.toHaveText('00:00', { timeout: 5_000 });
+
+  // Gol com assistência, em três toques.
+  const jogadores = page.locator('section[aria-label="Escolha o jogador"]');
+  await jogadores.locator('div').first().getByRole('button').nth(1).click();
+  await page.getByRole('button', { name: 'Gol', exact: true }).click();
+  await page.getByRole('button', { name: 'Sem assistência' }).locator('xpath=..').getByRole('button').nth(1).click();
+  await expect(page.getByLabel('Placar 1 a 0')).toBeVisible();
+  await expect(page.getByText(/Entra no minuto|Gol ·/).first()).toBeVisible();
+
+  // Internet cai: o lance fica na fila, aparece na tela e o placar não espera.
+  await context.setOffline(true);
+  await jogadores.locator('div').nth(1).getByRole('button').nth(1).click();
+  await page.getByRole('button', { name: 'Gol', exact: true }).click();
+  await page.getByRole('button', { name: 'Sem assistência' }).click();
+  await expect(page.getByLabel('Placar 1 a 1')).toBeVisible();
+  await expect(conexao).toHaveText(/Sem internet · 1 na fila/, { timeout: 15_000 });
+  await expect(page.getByText('Na fila', { exact: true })).toBeVisible();
+
+  // Volta a internet: a fila sobe sozinha e o gol entra uma vez só.
+  await context.setOffline(false);
+  await expect(conexao).toHaveText(/Online/, { timeout: 20_000 });
+  await expect(page.getByText('Na fila', { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel('Placar 1 a 1')).toBeVisible();
+  await expect(page.locator('section[aria-labelledby=titulo-lances] li')).toHaveCount(2);
+  await page.screenshot({ path: test.info().outputPath('mesario.png'), fullPage: true });
+
+  // Pausa, fim do 1º tempo (dois toques), 2º tempo e fim do jogo.
+  await page.getByRole('button', { name: 'Pausar' }).click();
+  await expect(page.getByText('1º tempo · pausado')).toBeVisible();
+  await page.getByRole('button', { name: 'Retomar' }).click();
+  await page.getByRole('button', { name: 'Fim do 1º tempo' }).click();
+  await page.getByRole('button', { name: 'Confirmar fim do 1º tempo' }).click();
+  await expect(page.getByText('Intervalo', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Começar 2º tempo' }).click();
+  await expect(page.getByText('2º tempo', { exact: true })).toBeVisible();
+
+  // Telão público mostra o jogo ao vivo com o placar.
+  // Telão é público: abre num navegador sem login.
+  const publico = await browser.newContext({ baseURL });
+  const telao = await publico.newPage();
+  await telao.goto('/telao');
+  await expect(telao.getByTestId('placar-telao')).toHaveText(/1\s*:\s*1/);
+  await expect(telao.getByText('2º tempo')).toBeVisible();
+  await telao.screenshot({ path: test.info().outputPath('telao.png') });
+  await publico.close();
+
+  await page.getByRole('button', { name: 'Fim do jogo' }).click();
+  await page.getByRole('button', { name: 'Confirmar fim do jogo' }).click();
+  await expect(page.getByText('Jogo encerrado.').first()).toBeVisible();
+  await page.setViewportSize({ width: 1366, height: 900 });
+});
+
 test('site público mostra o resultado: tabela, jogos e artilharia', async () => {
   await irPara('/classificacao');
   await expect(page.locator('main')).toContainText('Grupo Único');
   await irPara('/jogos');
-  await expect(page.locator('main')).toContainText('1 de 34 jogos encerrados');
+  await expect(page.locator('main')).toContainText('2 de 34 jogos encerrados');
   await irPara('/rankings');
   await expect(page.locator('main')).toContainText(artilheiro);
   await irPara('/regulamento');

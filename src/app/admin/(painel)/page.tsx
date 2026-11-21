@@ -56,9 +56,14 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
             {daVez.numero !== undefined && <span className="numero mr-2 text-[var(--accent)]">J{daVez.numero}</span>}
             {nomeDoLado(c, daVez, 'mandante', equipe)} <span className="text-text-3">x</span> {nomeDoLado(c, daVez, 'visitante', equipe)}
           </p>
-          <Link href={`/admin/partidas/${daVez.id}`} className="btn-cta mt-4 w-full sm:w-auto">
-            <span>{daVez.status === 'ao-vivo' ? 'Abrir súmula' : 'Abrir súmula e começar'}</span>
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href={`/admin/mesario/${daVez.id}`} className="btn-cta w-full sm:w-auto">
+              <span>Modo Mesário</span>
+            </Link>
+            <Link href={`/admin/partidas/${daVez.id}`} className="btn-hud w-full sm:w-auto">
+              {daVez.status === 'ao-vivo' ? 'Súmula completa' : 'Súmula completa e começar'}
+            </Link>
+          </div>
         </section>
       )}
 

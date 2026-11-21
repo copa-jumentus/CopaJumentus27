@@ -11,6 +11,7 @@ import { COOKIE_CAMPEONATO, idDoCampeonatoDoAdmin } from '@/lib/campeonato/selec
 import { gerarRodadas, nomeGrupo, sortearGrupos } from '@/lib/domain/campeonato/grupos';
 import { DIAS_DO_MODELO, sortearNumerosTabela } from '@/lib/domain/campeonato/modelo';
 import { lerRankingManual } from '@/lib/domain/campeonato/historico';
+import { apagarEvento, lancarEvento } from '@/lib/domain/campeonato/sumula';
 import {
   financeiroPadrao,
   formatarReais,
@@ -23,14 +24,11 @@ import {
 } from '@/lib/domain/campeonato/financeiro';
 import { aplicarProgramacao, problemaNaProgramacao, remarcarPartida, type Programacao } from '@/lib/domain/campeonato/programacao';
 import {
-  ehGol,
-  TIPOS_EVENTO,
   type Campeonato,
   type Criterio,
   type Partida,
   type StatusCampeonato,
   type StatusPartida,
-  type TipoEvento,
   type TipoFase,
 } from '@/lib/domain/campeonato/tipos';
 import type { Posicao } from '@/lib/domain/tipos';
@@ -448,66 +446,25 @@ export async function ajustarPlacar(f: FormData): Promise<void> {
   });
 }
 
-/** Lado do placar que um evento de gol altera. */
-function ladoDoGol(p: Partida, tipo: TipoEvento, equipeId: string): 'mandante' | 'visitante' | null {
-  if (!ehGol(tipo)) return null;
-  const doMandante = equipeId === p.mandanteId;
-  const marcaMandante = tipo === 'gol-contra' ? !doMandante : doMandante;
-  return marcaMandante ? 'mandante' : 'visitante';
-}
-
-const NOME_EVENTO: Record<TipoEvento, string> = {
-  gol: 'Gol',
-  gol_penalti: 'Gol de pênalti',
-  'gol-contra': 'Gol contra',
-  penalti_perdido: 'Pênalti perdido',
-  amarelo: 'Amarelo',
-  vermelho: 'Vermelho',
-  defesa: 'Defesa',
-};
-
 export async function adicionarEvento(f: FormData): Promise<void> {
   await alterar(f, (c) => {
-    const p = acharPartida(c, texto(f, 'partidaId'));
-    const tipo = texto(f, 'tipo') as TipoEvento;
-    if (!TIPOS_EVENTO.includes(tipo)) throw new ErroRegra('Tipo de evento inválido.');
-    if (!p.mandanteId || !p.visitanteId) throw new ErroRegra('Esta partida ainda não tem os dois participantes definidos.');
-    const jogador = c.jogadores.find((j) => j.id === texto(f, 'jogadorId'));
-    if (!jogador) throw new ErroRegra('Escolha o jogador.');
-    if (jogador.equipeId !== p.mandanteId && jogador.equipeId !== p.visitanteId) {
-      throw new ErroRegra('Esse jogador não é de nenhuma das duas equipes.');
-    }
-    if (tipo === 'defesa') {
-      const goleiro = jogador.equipeId === p.mandanteId ? p.goleiroMandanteId : p.goleiroVisitanteId;
-      if (goleiro && goleiro !== jogador.id) throw new ErroRegra('Defesa é do goleiro registrado nesta partida.');
-    }
-    const assistente = c.jogadores.find((j) => j.id === texto(f, 'assistenciaId'));
-    const minuto = inteiro(f, 'minuto', 0);
-    p.eventos.push({
-      id: novoId(),
-      tipo,
-      jogadorId: jogador.id,
-      equipeId: jogador.equipeId,
-      assistenciaId: tipo === 'gol' && assistente && assistente.id !== jogador.id ? assistente.id : undefined,
-      minuto: minuto > 0 ? minuto : undefined,
+    let mensagem = '';
+    noDominio(() => {
+      mensagem = lancarEvento(c, texto(f, 'partidaId'), {
+        id: novoId(),
+        tipo: texto(f, 'tipo'),
+        jogadorId: texto(f, 'jogadorId'),
+        assistenciaId: opcional(f, 'assistenciaId'),
+        minuto: inteiro(f, 'minuto', 0),
+      });
     });
-    const lado = ladoDoGol(p, tipo, jogador.equipeId);
-    if (lado === 'mandante') p.golsMandante += 1;
-    if (lado === 'visitante') p.golsVisitante += 1;
-    if (p.status === 'agendada') p.status = 'ao-vivo';
-    return `${NOME_EVENTO[tipo]} · ${jogador.nome}. Placar ${p.golsMandante}:${p.golsVisitante}.`;
+    return mensagem;
   });
 }
 
 export async function removerEvento(f: FormData): Promise<void> {
   await alterar(f, (c) => {
-    const p = acharPartida(c, texto(f, 'partidaId'));
-    const ev = p.eventos.find((e) => e.id === texto(f, 'eventoId'));
-    if (!ev) return;
-    p.eventos = p.eventos.filter((e) => e.id !== ev.id);
-    const lado = ladoDoGol(p, ev.tipo, ev.equipeId);
-    if (lado === 'mandante') p.golsMandante = Math.max(0, p.golsMandante - 1);
-    if (lado === 'visitante') p.golsVisitante = Math.max(0, p.golsVisitante - 1);
+    noDominio(() => apagarEvento(c, texto(f, 'partidaId'), texto(f, 'eventoId')));
   });
 }
 

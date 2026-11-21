@@ -3,6 +3,7 @@
 
 import type { Financeiro } from './financeiro';
 import type { Programacao } from './programacao';
+import type { Relogio } from './relogio';
 
 import type { Posicao } from '@/lib/domain/tipos';
 
@@ -150,6 +151,8 @@ export interface Partida {
   penaltisMandante?: number;
   penaltisVisitante?: number;
   eventos: EventoPartida[];
+  /** Cronômetro do Modo Mesário (relogio.ts); ausente enquanto ninguém começou o jogo por ele. */
+  relogio?: Relogio;
 }
 
 export type StatusCampeonato = 'rascunho' | 'inscricoes' | 'andamento' | 'encerrado';

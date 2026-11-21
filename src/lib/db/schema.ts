@@ -17,6 +17,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { Relogio } from '../domain/campeonato/relogio';
 import type { Programacao } from '../domain/campeonato/programacao';
 import type { Financeiro } from '../domain/campeonato/financeiro';
 import type { Historico, Premio } from '../domain/campeonato/tipos';
@@ -199,6 +200,8 @@ export const partida = pgTable(
     dataHora: text('data_hora'),
     local: text('local'),
     status: text('status', { enum: ['agendada', 'ao-vivo', 'encerrada'] }).notNull().default('agendada'),
+    /** Cronômetro do Modo Mesário (lib/domain/campeonato/relogio.ts). */
+    relogio: jsonb('relogio').$type<Relogio>(),
     golsMandante: smallint('gols_mandante').notNull().default(0),
     golsVisitante: smallint('gols_visitante').notNull().default(0),
     penaltisMandante: smallint('penaltis_mandante'),
