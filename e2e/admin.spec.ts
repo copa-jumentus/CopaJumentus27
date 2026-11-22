@@ -1,7 +1,8 @@
 // Fluxo completo do admin, em ordem, no banco descartável (dados/e2e-pglite):
 // primeiro acesso com troca de senha → campeonato no modelo oficial → inscrições
 // com as cotas fechadas → pote sem estrelas → cerimônia → oficializar → T1 a T8 →
-// súmula com gol e assistência → tabela e rankings públicos → financeiro → artes → sair.
+// súmula com gol e assistência → modo mesário → tabela e rankings públicos → financeiro →
+// artes → conta de mesário restrita → sair.
 // Nunca roda contra produção (playwright.config.ts só inclui este projeto localmente).
 
 import path from 'node:path';
@@ -204,6 +205,8 @@ test('modo mesário: cronômetro, lances com minuto, internet caindo e voltando,
   await page.getByRole('button', { name: 'Fim do jogo' }).click();
   await page.getByRole('button', { name: 'Confirmar fim do jogo' }).click();
   await expect(page.getByText('Jogo encerrado.').first()).toBeVisible();
+  // A fila precisa esvaziar antes de sair da tela.
+  await expect(page.getByTestId('conexao')).toHaveText('Online');
   await page.setViewportSize({ width: 1366, height: 900 });
 });
 
@@ -238,6 +241,47 @@ test('artes: prévias de feed e stories e download do PNG', async () => {
   await expect(page.getByRole('button', { name: 'Baixar PNG' }).first()).toBeEnabled();
   const [story] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).nth(1).click()]);
   expect(story.suggestedFilename()).toBe('copa-jumentus-artilharia-story.png');
+});
+
+test('conta de mesário: só entra no Modo Mesário', async ({ browser, baseURL }) => {
+  await irPara('/admin/admins');
+  const form = page.locator('form').filter({ has: page.locator('select[name=papel]') });
+  await form.locator('input[name=usuario]').fill('mesa1');
+  await form.locator('input[name=nome]').fill('Mesa do campo');
+  await form.locator('select[name=papel]').selectOption('mesario');
+  await form.getByRole('button', { name: 'Criar conta' }).click();
+  const senha = (await form.locator('p.numero').textContent())?.trim() ?? '';
+  expect(senha.length).toBeGreaterThan(8);
+  await irPara('/admin/admins');
+  await expect(page.getByText(/mesa1 · Mesário/)).toBeVisible();
+
+  // Outro navegador: o celular do mesário.
+  const ctx = await browser.newContext({ baseURL });
+  const cel = await ctx.newPage();
+  await cel.goto('/admin/entrar');
+  await cel.fill('input[name=usuario]', 'mesa1');
+  await cel.fill('input[name=senha]', senha);
+  await cel.getByRole('button', { name: 'Entrar' }).click();
+  await expect(cel).toHaveURL(/\/admin\/mesario/);
+  const dialogo = cel.getByRole('dialog');
+  await dialogo.locator('input[name=nova]').fill('senha-do-mesario-2027');
+  await dialogo.locator('input[name=confirmacao]').fill('senha-do-mesario-2027');
+  await dialogo.getByRole('button', { name: /Salvar nova senha/ }).click();
+  await expect(dialogo).toBeHidden();
+  await expect(cel.getByRole('heading', { name: 'Jogos' })).toBeVisible();
+
+  // Abre um jogo: sem atalho para a súmula completa.
+  await cel.locator('a[href^="/admin/mesario/"]').filter({ hasText: 'J3' }).first().click();
+  await expect(cel.getByTestId('cronometro')).toBeVisible();
+  await expect(cel.getByRole('link', { name: 'Voltar para a lista de jogos' })).toBeVisible();
+  await expect(cel.getByRole('link', { name: 'Voltar para a súmula completa' })).toHaveCount(0);
+
+  // O resto do admin manda de volta para a lista de jogos.
+  for (const rota of ['/admin', '/admin/financeiro', '/admin/inscricoes', '/admin/admins', '/sorteio', '/cerimonia', '/admin/partidas']) {
+    await cel.goto(rota);
+    await expect(cel).toHaveURL(/\/admin\/mesario$/);
+  }
+  await ctx.close();
 });
 
 test('sair encerra a sessão', async () => {

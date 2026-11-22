@@ -13,6 +13,7 @@ import { ehAcaoDesatualizada } from '@/lib/atualizacao';
 import {
   comPendentes,
   completarOperacao,
+  faltaDecidirPenaltis,
   lerCronometro,
   type PedidoMesario,
   type EstadoMesario,
@@ -47,6 +48,8 @@ interface Props {
   goleiros: { mandante?: string; visitante?: string };
   mataMata: boolean;
   estadoInicial: EstadoMesario;
+  /** Conta de admin: tem a súmula completa. Conta de mesário só tem esta tela e a lista de jogos. */
+  podeSumula: boolean;
 }
 
 const EVENTOS: Array<{ tipo: TipoEvento; rotulo: string; cor?: string; so?: 'goleiro' }> = [
@@ -77,7 +80,7 @@ function vibrar() {
 type Conexao = 'online' | 'enviando' | 'offline';
 
 export function MesarioCliente(props: Props) {
-  const { campeonatoId, partidaId, mandante, visitante, jogadores, goleiros, mataMata } = props;
+  const { campeonatoId, partidaId, mandante, visitante, jogadores, goleiros, mataMata, podeSumula } = props;
   const [base, setBase] = useState<EstadoMesario>(props.estadoInicial);
   const [fila, setFila] = useState<ItemFila[]>([]);
   const [conexao, setConexao] = useState<Conexao>('online');
@@ -221,22 +224,36 @@ export function MesarioCliente(props: Props) {
   const encerrada = estado.status === 'encerrada';
 
   const relogio = (acao: AcaoRelogio, tempo: 1 | 2) => enfileirar({ tipo: 'relogio', acao, tempo });
-  const fimDoJogo = () => {
-    relogio('fim', 2);
-    if (mataMata && estado.golsMandante === estado.golsVisitante) {
-      setErros((es) => [...es, 'Empate no mata-mata: lance os pênaltis na súmula completa e encerre o jogo por lá.']);
+  const semVencedor = faltaDecidirPenaltis(estado, mataMata);
+  const empateMataMata = mataMata && estado.golsMandante === estado.golsVisitante;
+  const encerrar = () => {
+    if (semVencedor) {
+      setErros((es) => [...es, 'Empate no mata-mata: lance os pênaltis até ter um vencedor para encerrar.']);
       return;
     }
     enfileirar({ tipo: 'status', status: 'encerrada' });
   };
+  const fimDoJogo = () => {
+    relogio('fim', 2);
+    // Empate no mata-mata: a tela abre a disputa de pênaltis antes de encerrar.
+    if (!empateMataMata) enfileirar({ tipo: 'status', status: 'encerrada' });
+  };
+  const penaltis = (mandantePen: number, visitantePen: number) =>
+    enfileirar({ tipo: 'penaltis', mandante: Math.max(0, mandantePen), visitante: Math.max(0, visitantePen) });
 
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-[var(--bg)] pb-10">
       {/* Barra: jogo, conexão e saída para a súmula completa */}
       <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-hud bg-[var(--surface1)] px-3 py-2">
-        <Link href={`/admin/partidas/${partidaId}`} className="btn-mini" aria-label="Voltar para a súmula completa">
-          ← Súmula
-        </Link>
+        {podeSumula ? (
+          <Link href={`/admin/partidas/${partidaId}`} className="btn-mini" aria-label="Voltar para a súmula completa">
+            ← Súmula
+          </Link>
+        ) : (
+          <Link href="/admin/mesario" className="btn-mini" aria-label="Voltar para a lista de jogos">
+            ← Jogos
+          </Link>
+        )}
         <p className="hud-label min-w-0 flex-1 truncate !text-[13px]">{props.titulo}</p>
         <SeloConexao conexao={conexao} naFila={daPartida.length} />
       </header>
@@ -287,21 +304,60 @@ export function MesarioCliente(props: Props) {
               encerrada={encerrada}
               relogio={relogio}
               fimDoJogo={fimDoJogo}
-              encerrar={() => enfileirar({ tipo: 'status', status: 'encerrada' })}
-              mataMata={mataMata}
-              partidaId={partidaId}
+              encerrar={encerrar}
             />
           </div>
         </section>
 
+        {/* Disputa de pênaltis: mata-mata empatado, depois do fim do 2º tempo */}
+        {empateMataMata && !encerrada && leitura.fase === 'fim' && (
+          <section className="hud-card relative px-4 py-4" aria-label="Disputa de pênaltis">
+            <p className="hud-label text-center !text-[13px]" style={{ color: 'var(--accent)' }}>
+              Disputa de pênaltis
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {(['mandante', 'visitante'] as const).map((lado) => {
+                const m = estado.penaltisMandante ?? 0;
+                const v = estado.penaltisVisitante ?? 0;
+                const valor = lado === 'mandante' ? m : v;
+                const mudar = (d: number) => (lado === 'mandante' ? penaltis(m + d, v) : penaltis(m, v + d));
+                const time = lado === 'mandante' ? mandante : visitante;
+                return (
+                  <div key={lado} className="text-center">
+                    <p className="hud-label !text-[12px]">{time.sigla}</p>
+                    <p className="numero text-5xl leading-none" data-testid={`penaltis-${lado}`}>
+                      {valor}
+                    </p>
+                    <div className="mt-2 flex justify-center gap-2">
+                      <button type="button" className="btn-hud" onClick={() => mudar(-1)} disabled={valor === 0} aria-label={`Tirar um pênalti de ${time.sigla}`}>
+                        −
+                      </button>
+                      <button type="button" className="btn-cta" onClick={() => mudar(1)} aria-label={`Pênalti convertido por ${time.sigla}`}>
+                        <span>+</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {semVencedor && <p className="mt-3 text-center text-xs text-text-3">Para encerrar, a disputa precisa de um vencedor.</p>}
+          </section>
+        )}
+
         {/* Lançamento */}
         {encerrada ? (
           <p className="text-center text-sm text-text-2">
-            Jogo encerrado. Correções e pênaltis ficam na{' '}
-            <Link href={`/admin/partidas/${partidaId}`} className="underline">
-              súmula completa
-            </Link>
-            .
+            {podeSumula ? (
+              <>
+                Jogo encerrado. Correções ficam na{' '}
+                <Link href={`/admin/partidas/${partidaId}`} className="underline">
+                  súmula completa
+                </Link>
+                .
+              </>
+            ) : (
+              'Jogo encerrado. Para corrigir alguma coisa, fale com um admin.'
+            )}
           </p>
         ) : (
           <Lancador jogadores={jogadores} goleiros={goleiros} mandante={mandante} visitante={visitante} minuto={leitura.minuto} lancar={enfileirar} />
@@ -397,8 +453,6 @@ function ControlesRelogio({
   relogio,
   fimDoJogo,
   encerrar,
-  mataMata,
-  partidaId,
 }: {
   fase: ReturnType<typeof lerCronometro>['fase'];
   correndo: boolean;
@@ -406,8 +460,6 @@ function ControlesRelogio({
   relogio: (acao: AcaoRelogio, tempo: 1 | 2) => void;
   fimDoJogo: () => void;
   encerrar: () => void;
-  mataMata: boolean;
-  partidaId: string;
 }) {
   const Pausa = ({ tempo }: { tempo: 1 | 2 }) =>
     correndo ? (
@@ -449,13 +501,7 @@ function ControlesRelogio({
         </>
       );
     case 'fim':
-      return mataMata ? (
-        <Link href={`/admin/partidas/${partidaId}`} className="btn-cta">
-          <span>Pênaltis e encerramento na súmula</span>
-        </Link>
-      ) : (
-        <BotaoConfirmar rotulo="Encerrar jogo" confirmar="Confirmar encerramento" onClick={encerrar} principal />
-      );
+      return <BotaoConfirmar rotulo="Encerrar jogo" confirmar="Confirmar encerramento" onClick={encerrar} principal />;
   }
 }
 

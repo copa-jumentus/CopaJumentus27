@@ -6,17 +6,24 @@
 // (nesse caso a chamada nem chega aqui e a fila tenta de novo).
 
 import { revalidatePath } from 'next/cache';
-import { exigirAdmin } from '@/lib/auth/servidor';
+import { exigirMesario } from '@/lib/auth/servidor';
+import { idDoCampeonatoDoMesario } from '@/lib/campeonato/selecao';
 import { aplicarOperacao, estadoMesario, lerOperacao, type EstadoMesario } from '@/lib/domain/campeonato/mesario';
 import { ErroDoJogo } from '@/lib/domain/campeonato/relogio';
 import { atualizarCampeonato, carregarCampeonato, ErroCampeonato } from '@/lib/repo/campeonato-repo';
 
 export type RespostaMesario = { ok: true; mensagem: string; estado: EstadoMesario } | { ok: false; erro: string; estado?: EstadoMesario };
 
+/** Conta de mesário só opera no campeonato atual do site; admin, em qualquer um. */
+async function podeOperar(campeonatoId: number): Promise<boolean> {
+  const conta = await exigirMesario();
+  if (!Number.isInteger(campeonatoId)) return false;
+  return conta.papel === 'admin' || campeonatoId === (await idDoCampeonatoDoMesario(conta.papel));
+}
+
 export async function operarMesario(campeonatoId: number, entrada: unknown): Promise<RespostaMesario> {
-  await exigirAdmin();
   const op = lerOperacao(entrada);
-  if (!op || !Number.isInteger(campeonatoId)) return { ok: false, erro: 'Operação inválida.' };
+  if (!(await podeOperar(campeonatoId)) || !op) return { ok: false, erro: 'Operação inválida.' };
   let mensagem = '';
   try {
     const c = await atualizarCampeonato(campeonatoId, (doc) => {
@@ -37,7 +44,7 @@ export async function operarMesario(campeonatoId: number, entrada: unknown): Pro
 
 /** Estado atual da partida (para o mesário acompanhar lances lançados em outro celular). */
 export async function lerEstadoMesario(campeonatoId: number, partidaId: string): Promise<EstadoMesario | null> {
-  await exigirAdmin();
+  if (!(await podeOperar(campeonatoId))) return null;
   return (await lerEstado(campeonatoId, partidaId)) ?? null;
 }
 

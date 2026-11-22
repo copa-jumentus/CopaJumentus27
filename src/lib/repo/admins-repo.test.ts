@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bancoDeTeste, type Banco } from '@/lib/db/cliente';
+import { sql } from 'drizzle-orm';
 import { admin } from '@/lib/db/schema';
 import { BLOQUEIO_MS } from '@/lib/auth/bloqueio';
 import {
@@ -104,6 +105,20 @@ describe('contas de admin', () => {
     await expect(desativarAdmin(b.id, a.id, db)).rejects.toThrow(/último/);
   });
 
+  it('conta de mesário não conta como "último admin" e não é admin por padrão', async () => {
+    const { admin: a } = await criarAdmin('rommel', 'Rommel', db);
+    const { admin: m } = await criarAdmin('mesa', 'Mesa', db, 'mesario');
+    expect(a.papel).toBe('admin');
+    expect(m.papel).toBe('mesario');
+    // Com um admin e um mesário ativos, o admin continua sendo o último admin.
+    await expect(desativarAdmin(a.id, m.id, db)).rejects.toThrow(/último/);
+    await desativarAdmin(m.id, a.id, db);
+  });
+
+  it('o banco recusa papel fora de admin/mesário', async () => {
+    await expect(db.execute(sql`insert into admin (usuario, nome, senha_hash, papel) values ('x1', 'X', 'x', 'dono')`)).rejects.toThrow();
+  });
+
   it('o banco recusa usuário com maiúscula inserido por fora', async () => {
     await expect(db.insert(admin).values({ usuario: 'Maiusculo', nome: 'M', senhaHash: 'x' })).rejects.toThrow();
   });
@@ -125,5 +140,17 @@ describe('acesso (exigirAdmin)', () => {
     const novo = await assinarSessao({ adminId: conta.id, versao: 2, expira: Date.now() + 60_000 }, segredo);
     expect(await decidirAcesso(novo, segredo, {}, Date.now(), db)).toMatchObject({ tipo: 'ok', admin: { usuario: 'guilherme' } });
     expect(await decidirAcesso(novo, 'outro'.repeat(10), {}, Date.now(), db)).toEqual({ tipo: 'sem-sessao' });
+  });
+
+  it('conta de mesário só passa onde o papel é aceito', async () => {
+    const { decidirAcesso } = await import('@/lib/auth/acesso');
+    const { assinarSessao } = await import('@/lib/auth/sessao');
+    const { admin: conta } = await criarAdmin('mesa', 'Mesa', db, 'mesario');
+    await trocarSenha(conta.id, { nova: 'senha-nova-123', confirmacao: 'senha-nova-123' }, t0, db);
+    const token = await assinarSessao({ adminId: conta.id, versao: 2, expira: Date.now() + 60_000 }, segredo);
+
+    expect(await decidirAcesso(token, segredo, {}, Date.now(), db)).toMatchObject({ tipo: 'sem-permissao' });
+    expect(await decidirAcesso(token, segredo, { papeis: ['admin'] }, Date.now(), db)).toMatchObject({ tipo: 'sem-permissao' });
+    expect(await decidirAcesso(token, segredo, { papeis: ['admin', 'mesario'] }, Date.now(), db)).toMatchObject({ tipo: 'ok', admin: { papel: 'mesario' } });
   });
 });

@@ -4,7 +4,7 @@
 // gol nem bagunça o cronômetro. Puro e testado.
 
 import { lerRelogio, type AcaoRelogio, type LeituraRelogio, type Relogio, aplicarComando, RELOGIO_INICIAL } from './relogio';
-import { acharPartida, apagarEvento, comandarRelogio, duracaoDoTempo, ladoQueMarca, lancarEvento, mudarStatus, NOME_EVENTO } from './sumula';
+import { acharPartida, apagarEvento, comandarRelogio, definirPenaltis, duracaoDoTempo, ladoQueMarca, lancarEvento, mudarStatus, NOME_EVENTO } from './sumula';
 import type { Campeonato, StatusPartida, TipoEvento } from './tipos';
 
 interface OperacaoBase {
@@ -19,7 +19,9 @@ export type OperacaoMesario =
   | (OperacaoBase & { tipo: 'evento'; evento: { tipo: TipoEvento; jogadorId: string; assistenciaId?: string; minuto?: number } })
   | (OperacaoBase & { tipo: 'apagar'; eventoId: string })
   | (OperacaoBase & { tipo: 'relogio'; acao: AcaoRelogio; tempo: 1 | 2 })
-  | (OperacaoBase & { tipo: 'status'; status: Extract<StatusPartida, 'ao-vivo' | 'encerrada'> });
+  | (OperacaoBase & { tipo: 'status'; status: Extract<StatusPartida, 'ao-vivo' | 'encerrada'> })
+  /** Placar absoluto da disputa de pênaltis (mata-mata empatado). */
+  | (OperacaoBase & { tipo: 'penaltis'; mandante: number; visitante: number });
 
 /** Até onde o servidor aceita o instante informado pelo celular. */
 const TOLERANCIA_FUTURO_MS = 5_000;
@@ -43,6 +45,9 @@ export function aplicarOperacao(c: Campeonato, op: OperacaoMesario, agoraServido
     case 'status':
       mudarStatus(c, op.partidaId, op.status);
       return op.status === 'encerrada' ? 'Jogo encerrado.' : 'Jogo ao vivo.';
+    case 'penaltis':
+      definirPenaltis(c, op.partidaId, op.mandante, op.visitante);
+      return `Pênaltis ${op.mandante}:${op.visitante}.`;
   }
 }
 
@@ -163,6 +168,8 @@ export function comPendentes(base: EstadoMesario, fila: readonly OperacaoMesario
       } catch {
         // fora de ordem: o servidor vai recusar e a tela mostra o erro
       }
+    } else if (op.tipo === 'penaltis') {
+      estado = { ...estado, penaltisMandante: op.mandante, penaltisVisitante: op.visitante };
     } else {
       estado = { ...estado, status: op.status };
     }
@@ -212,6 +219,12 @@ export function lerOperacao(x: unknown): OperacaoMesario | null {
   if (x.tipo === 'status' && (x.status === 'ao-vivo' || x.status === 'encerrada')) {
     return { ...base, tipo: 'status', status: x.status };
   }
+  if (x.tipo === 'penaltis') {
+    const placar = (n: unknown) => (typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= 50 ? n : undefined);
+    const mandante = placar(x.mandante);
+    const visitante = placar(x.visitante);
+    return mandante !== undefined && visitante !== undefined ? { ...base, tipo: 'penaltis', mandante, visitante } : null;
+  }
   return null;
 }
 
@@ -230,5 +243,13 @@ export function completarOperacao(p: PedidoMesario, id: string, partidaId: strin
       return { ...base, tipo: 'relogio', acao: p.acao, tempo: p.tempo };
     case 'status':
       return { ...base, tipo: 'status', status: p.status };
+    case 'penaltis':
+      return { ...base, tipo: 'penaltis', mandante: p.mandante, visitante: p.visitante };
   }
+}
+
+/** Mata-mata empatado no tempo normal ainda sem vencedor nos pênaltis: não pode encerrar. */
+export function faltaDecidirPenaltis(e: Pick<EstadoMesario, 'golsMandante' | 'golsVisitante' | 'penaltisMandante' | 'penaltisVisitante'>, mataMata: boolean): boolean {
+  if (!mataMata || e.golsMandante !== e.golsVisitante) return false;
+  return (e.penaltisMandante ?? 0) === (e.penaltisVisitante ?? 0);
 }

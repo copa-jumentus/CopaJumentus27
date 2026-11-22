@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { aplicarChaveamento } from './chaveamento';
-import { aplicarOperacao, comPendentes, estadoMesario, lerCronometro, type OperacaoMesario } from './mesario';
+import { aplicarOperacao, comPendentes, estadoMesario, faltaDecidirPenaltis, lerCronometro, lerOperacao, type OperacaoMesario } from './mesario';
 import { aplicarModelo } from './modelo';
 import { CRITERIOS_PADRAO, type Campeonato } from './tipos';
 
@@ -126,5 +126,38 @@ describe('operação vinda do celular', async () => {
     expect(lerOperacao({ id: 'a', partidaId: 'p', em: 1, tipo: 'status', status: 'agendada' })).toBeNull();
     expect(lerOperacao({ id: 'x'.repeat(100), partidaId: 'p', em: 1, tipo: 'apagar', eventoId: 'e' })).toBeNull();
     expect(lerOperacao('texto')).toBeNull();
+  });
+
+  it('pênaltis: só no mata-mata empatado, valor absoluto (reenviar é seguro)', () => {
+    const c = campeonato();
+    const { p } = jogo1(c);
+    expect(() => aplicarOperacao(c, { em: T0, id: 'p0', partidaId: p.id, tipo: 'penaltis', mandante: 1, visitante: 0 }, T0)).toThrow(/mata-mata/);
+
+    const fase = c.fases.find((f) => f.tipo === 'mata-mata');
+    if (!fase) throw new Error('sem mata-mata');
+    const mm = c.partidas.find((x) => x.faseId === fase.id);
+    if (!mm) throw new Error('sem jogo de mata-mata');
+    mm.mandanteId = 'a';
+    mm.visitanteId = 'b';
+    const pen = (id: string, mandante: number, visitante: number): OperacaoMesario => ({ em: T0, id, partidaId: mm.id, tipo: 'penaltis', mandante, visitante });
+    aplicarOperacao(c, pen('p1', 1, 0), T0);
+    aplicarOperacao(c, pen('p2', 4, 3), T0);
+    aplicarOperacao(c, pen('p2', 4, 3), T0);
+    expect([mm.penaltisMandante, mm.penaltisVisitante]).toEqual([4, 3]);
+    expect(faltaDecidirPenaltis(estadoMesario(c, mm.id, T0), true)).toBe(false);
+    aplicarOperacao(c, pen('p3', 4, 4), T0);
+    expect(faltaDecidirPenaltis(estadoMesario(c, mm.id, T0), true)).toBe(true);
+
+    aplicarOperacao(c, { em: T0, id: 'g1', partidaId: mm.id, tipo: 'evento', evento: { tipo: 'gol', jogadorId: 'a1' } }, T0);
+    expect(faltaDecidirPenaltis(estadoMesario(c, mm.id, T0), true)).toBe(false);
+    expect(() => aplicarOperacao(c, pen('p4', 5, 4), T0)).toThrow(/empate/);
+  });
+
+  it('pênaltis que chegam do celular são validados', () => {
+    const base = { id: 'x', partidaId: 'p', em: T0, tipo: 'penaltis' };
+    expect(lerOperacao({ ...base, mandante: 3, visitante: 2 })).toMatchObject({ tipo: 'penaltis', mandante: 3, visitante: 2 });
+    expect(lerOperacao({ ...base, mandante: -1, visitante: 2 })).toBeNull();
+    expect(lerOperacao({ ...base, mandante: 1.5, visitante: 2 })).toBeNull();
+    expect(lerOperacao({ ...base, mandante: '3', visitante: 2 })).toBeNull();
   });
 });

@@ -3,11 +3,12 @@
 // não fecha (sem X, sem Esc, sem clique fora) pede a nova senha. O servidor
 // também recusa qualquer ação até a troca (exigirAdmin).
 
-import { exigirAdmin } from '@/lib/auth/servidor';
+import { exigirAdmin, exigirMesario } from '@/lib/auth/servidor';
 import { FormTrocaSenha } from './FormTrocaSenha';
 
-export async function GuardaAdmin({ children }: { children: React.ReactNode }) {
-  const conta = await exigirAdmin({ permitirTrocaPendente: true });
+/** `mesario`: também aceita conta de mesário (só no Modo Mesário). */
+export async function GuardaAdmin({ children, mesario = false }: { children: React.ReactNode; mesario?: boolean }) {
+  const conta = await (mesario ? exigirMesario : exigirAdmin)({ permitirTrocaPendente: true });
   if (!conta.deveTrocarSenha) return <>{children}</>;
   return (
     <>
@@ -30,9 +31,9 @@ export async function GuardaAdmin({ children }: { children: React.ReactNode }) {
           </h2>
           <div className="filete mt-3 w-16" aria-hidden="true" />
           <p id="troca-texto" className="mb-5 mt-3 text-sm text-text-2">
-            A senha que você recebeu é temporária. Escolha uma nova para continuar; até lá, nenhuma ação do admin é aceita.
+            A senha que você recebeu é temporária. Escolha uma nova para continuar; até lá, nenhuma ação é aceita.
           </p>
-          <FormTrocaSenha exigirAtual={false} volta="/admin" autoFocus />
+          <FormTrocaSenha exigirAtual={false} volta={conta.papel === 'mesario' ? '/admin/mesario' : '/admin'} autoFocus />
         </div>
       </div>
     </>

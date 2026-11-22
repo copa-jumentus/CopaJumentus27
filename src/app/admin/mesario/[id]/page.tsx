@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MesarioCliente, type JogadorMesario, type LadoMesario } from '@/components/admin/MesarioCliente';
-import { exigirAdmin } from '@/lib/auth/servidor';
+import { exigirMesario } from '@/lib/auth/servidor';
 import { indices, lados } from '@/lib/campeonato/consultas';
 import { fundoVisivel } from '@/lib/campeonato/cores';
-import { campeonatoDoAdmin } from '@/lib/campeonato/selecao';
+import { idDoCampeonatoDoMesario } from '@/lib/campeonato/selecao';
 import { estadoMesario } from '@/lib/domain/campeonato/mesario';
+import { carregarCampeonato } from '@/lib/repo/campeonato-repo';
 import { goleiroDaPartida } from '@/lib/domain/campeonato/rankings';
 import { calcularSuspensoes, ordenarPartidas } from '@/lib/domain/campeonato/suspensoes';
 import type { Equipe } from '@/lib/domain/campeonato/tipos';
@@ -18,9 +19,10 @@ function lado(e: Equipe): LadoMesario {
 }
 
 export default async function Mesario({ params }: { params: Promise<{ id: string }> }) {
-  await exigirAdmin();
+  const conta = await exigirMesario();
+  const podeSumula = conta.papel === 'admin';
   const { id } = await params;
-  const c = await campeonatoDoAdmin();
+  const c = await carregarCampeonato(await idDoCampeonatoDoMesario(conta.papel));
   const p = c.partidas.find((x) => x.id === id);
   if (!p) notFound();
 
@@ -30,8 +32,8 @@ export default async function Mesario({ params }: { params: Promise<{ id: string
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <p className="mb-4">Os participantes deste jogo ainda não estão definidos: ele não pode começar.</p>
-        <Link href={`/admin/partidas/${p.id}`} className="btn-hud">
-          Voltar à súmula
+        <Link href={podeSumula ? `/admin/partidas/${p.id}` : '/admin/mesario'} className="btn-hud">
+          {podeSumula ? 'Voltar à súmula' : 'Voltar aos jogos'}
         </Link>
       </div>
     );
@@ -68,6 +70,7 @@ export default async function Mesario({ params }: { params: Promise<{ id: string
       goleiros={{ mandante: goleiroDaPartida(p, 'mandante', c.jogadores), visitante: goleiroDaPartida(p, 'visitante', c.jogadores) }}
       mataMata={c.fases.find((f) => f.id === p.faseId)?.tipo === 'mata-mata'}
       estadoInicial={estadoMesario(c, p.id, Date.now())}
+      podeSumula={podeSumula}
     />
   );
 }

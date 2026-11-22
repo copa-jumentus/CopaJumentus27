@@ -108,3 +108,18 @@ export function comandarRelogio(c: Campeonato, partidaId: string, comando: Coman
 export function mudarStatus(c: Campeonato, partidaId: string, status: StatusPartida): void {
   acharPartida(c, partidaId).status = status;
 }
+
+/**
+ * Placar da disputa de pênaltis (valores absolutos, então reenviar é seguro).
+ * Só no mata-mata, com empate no tempo normal e o jogo ainda aberto.
+ */
+export function definirPenaltis(c: Campeonato, partidaId: string, mandante: number, visitante: number): void {
+  const p = acharPartida(c, partidaId);
+  if (p.status === 'encerrada') throw new ErroDoJogo('Esta partida já foi encerrada. Para corrigir, use a súmula completa.');
+  if (c.fases.find((f) => f.id === p.faseId)?.tipo !== 'mata-mata') throw new ErroDoJogo('Pênaltis só existem no mata-mata.');
+  if (p.golsMandante !== p.golsVisitante) throw new ErroDoJogo('Pênaltis só com empate no tempo normal.');
+  const valido = (n: number) => Number.isInteger(n) && n >= 0 && n <= 50;
+  if (!valido(mandante) || !valido(visitante)) throw new ErroDoJogo('Placar de pênaltis inválido.');
+  p.penaltisMandante = mandante;
+  p.penaltisVisitante = visitante;
+}

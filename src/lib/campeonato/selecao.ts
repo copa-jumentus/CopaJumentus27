@@ -22,6 +22,16 @@ export async function campeonatoDoAdmin(): Promise<Campeonato> {
   return carregarCampeonato(await idDoCampeonatoDoAdmin());
 }
 
+/**
+ * Campeonato do Modo Mesário. Admin: o em edição. Conta de mesário: sempre o atual
+ * do site público (não escolhe campeonato e não mexe em rascunho), sem ler cookie.
+ */
+export async function idDoCampeonatoDoMesario(papel: 'admin' | 'mesario'): Promise<number> {
+  if (papel === 'admin') return idDoCampeonatoDoAdmin();
+  const lista = await listarCampeonatos();
+  return (escolherAtual(lista) ?? lista[0]).id;
+}
+
 export async function edicoesPublicas(): Promise<ResumoCampeonato[]> {
   return (await listarCampeonatos()).filter((c) => c.status !== 'rascunho');
 }

@@ -21,7 +21,7 @@ export function FormNovoAdmin() {
   return (
     <form action={acao}>
       <Aviso texto={estado.erro} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
         <label className="block">
           <span className="rotulo-campo">Usuário</span>
           <input name="usuario" required autoComplete="off" autoCapitalize="none" spellCheck={false} className="campo" />
@@ -29,6 +29,13 @@ export function FormNovoAdmin() {
         <label className="block">
           <span className="rotulo-campo">Nome de exibição</span>
           <input name="nome" autoComplete="off" className="campo" />
+        </label>
+        <label className="block">
+          <span className="rotulo-campo">Tipo de conta</span>
+          <select name="papel" defaultValue="admin" className="campo">
+            <option value="admin">Admin (tudo)</option>
+            <option value="mesario">Mesário (só o Modo Mesário)</option>
+          </select>
         </label>
         <button type="submit" className="btn-cta" disabled={enviando}>
           <span>Criar conta</span>

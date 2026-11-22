@@ -5,7 +5,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { destinoSeguro } from '@/lib/auth/sessao';
-import { encerrarSessao, exigirAdmin, iniciarSessao } from '@/lib/auth/servidor';
+import { encerrarSessao, exigirAdmin, exigirMesario, iniciarSessao } from '@/lib/auth/servidor';
 import {
   ERRO_LOGIN,
   ErroConta,
@@ -32,7 +32,8 @@ export async function entrar(f: FormData): Promise<void> {
   const conta = await autenticar(texto(f, 'usuario'), texto(f, 'senha'));
   if (!conta) redirect(comParametro(`/admin/entrar?volta=${encodeURIComponent(volta)}`, 'erro', ERRO_LOGIN));
   await iniciarSessao(conta);
-  redirect(volta);
+  // Conta de mesário só tem o Modo Mesário: vai direto para a lista de jogos.
+  redirect(conta.papel === 'mesario' && !volta.startsWith('/admin/mesario') ? '/admin/mesario' : volta);
 }
 
 export async function sair(): Promise<void> {
@@ -51,7 +52,7 @@ export interface EstadoTroca {
  * (a pessoa acabou de entrar com a temporária); em Minha conta a atual é exigida.
  */
 export async function trocarMinhaSenha(_anterior: EstadoTroca, f: FormData): Promise<EstadoTroca> {
-  const conta = await exigirAdmin({ permitirTrocaPendente: true });
+  const conta = await exigirMesario({ permitirTrocaPendente: true });
   const obrigatoria = conta.deveTrocarSenha;
   let nova;
   try {
@@ -77,7 +78,8 @@ export type EstadoGestao = { erro?: string; senhaTemporaria?: { usuario: string;
 export async function criarAdminAcao(_anterior: EstadoGestao, f: FormData): Promise<EstadoGestao> {
   await exigirAdmin();
   try {
-    const { admin, senhaTemporaria } = await criarAdmin(texto(f, 'usuario'), texto(f, 'nome'));
+    const papel = texto(f, 'papel') === 'mesario' ? 'mesario' : 'admin';
+    const { admin, senhaTemporaria } = await criarAdmin(texto(f, 'usuario'), texto(f, 'nome'), undefined, papel);
     revalidatePath('/admin/admins');
     // A senha só volta nesta resposta: não vai para URL, log nem banco.
     return { senhaTemporaria: { usuario: admin.usuario, senha: senhaTemporaria } };

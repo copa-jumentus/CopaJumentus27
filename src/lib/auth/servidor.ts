@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { Admin } from '@/lib/repo/admins-repo';
-import { decidirAcesso } from './acesso';
+import { decidirAcesso, type OpcoesAcesso } from './acesso';
 import { COOKIE_ADMIN, DURACAO_SESSAO_MS, assinarSessao, segredoDaSessao } from './sessao';
 
 export const ERRO_TROCA_PENDENTE = 'Troque a senha temporária antes de qualquer outra ação.';
@@ -13,11 +13,13 @@ export const ERRO_TROCA_PENDENTE = 'Troque a senha temporária antes de qualquer
  * Com troca de senha pendente, recusa (volta ao painel, onde o pop-up pede a troca),
  * a não ser com `permitirTrocaPendente` (layout do admin e a ação de troca).
  */
-export async function exigirAdmin(opcoes: { permitirTrocaPendente?: boolean } = {}): Promise<Admin> {
+export async function exigirAdmin(opcoes: OpcoesAcesso = {}): Promise<Admin> {
   const loja = await cookies();
   const acesso = await decidirAcesso(loja.get(COOKIE_ADMIN)?.value, segredoDaSessao(), opcoes);
   if (acesso.tipo === 'sem-sessao') redirect('/admin/entrar');
-  if (acesso.tipo === 'troca-pendente') redirect(`/admin?erro=${encodeURIComponent(ERRO_TROCA_PENDENTE)}`);
+  // Conta de mesário fora do Modo Mesário: volta para a lista de jogos dele.
+  if (acesso.tipo === 'sem-permissao') redirect('/admin/mesario');
+  if (acesso.tipo === 'troca-pendente') redirect(`${acesso.admin.papel === 'mesario' ? '/admin/mesario' : '/admin'}?erro=${encodeURIComponent(ERRO_TROCA_PENDENTE)}`);
   return acesso.admin;
 }
 
@@ -39,4 +41,9 @@ export async function iniciarSessao(admin: Pick<Admin, 'id' | 'versaoSessao'>): 
 export async function encerrarSessao(): Promise<void> {
   const loja = await cookies();
   loja.delete(COOKIE_ADMIN);
+}
+
+/** Admin ou mesário: só para o Modo Mesário (lista de jogos, tela do jogo e as ações dele) e a troca de senha. */
+export async function exigirMesario(opcoes: Omit<OpcoesAcesso, 'papeis'> = {}): Promise<Admin> {
+  return exigirAdmin({ ...opcoes, papeis: ['admin', 'mesario'] });
 }
