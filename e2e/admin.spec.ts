@@ -219,6 +219,13 @@ test('site público mostra o resultado: tabela, jogos e artilharia', async () =>
   await expect(page.locator('main')).toContainText(artilheiro);
   await irPara('/regulamento');
   await expect(page.locator('main')).toContainText('34 jogos');
+
+  // Página pública do jogo 1: qualquer pessoa baixa a arte pronta do resultado.
+  await irPara('/jogos');
+  await irPara(String(await page.locator('a[href^="/jogos/"]').first().getAttribute('href')));
+  await expect(page.getByRole('heading', { name: 'Arte do jogo' })).toBeVisible();
+  const [arte] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar feed' }).click()]);
+  expect(arte.suggestedFilename()).toMatch(/^copa-jumentus-j1-[a-z]+-x-[a-z]+-feed\.png$/);
 });
 
 test('financeiro: começa pelo modelo da planilha e calcula o valor por atleta', async () => {
@@ -231,7 +238,9 @@ test('financeiro: começa pelo modelo da planilha e calcula o valor por atleta',
 
 test('artes: prévias de feed e stories e download do PNG', async () => {
   await irPara('/admin/artes');
-  await expect(page.locator('canvas')).toHaveCount(3);
+  // 3 artes da rodada + 1 por jogo já jogado da Rodada 1 (J1 e J2).
+  await expect(page.locator('canvas')).toHaveCount(5);
+  await expect(page.getByText('Resultado de cada jogo · Rodada 1')).toBeVisible();
   const baixar = page.getByRole('button', { name: 'Baixar PNG' }).first();
   await expect(baixar).toBeEnabled();
   const [arquivo] = await Promise.all([page.waitForEvent('download'), baixar.click()]);
@@ -241,6 +250,10 @@ test('artes: prévias de feed e stories e download do PNG', async () => {
   await expect(page.getByRole('button', { name: 'Baixar PNG' }).first()).toBeEnabled();
   const [story] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).nth(1).click()]);
   expect(story.suggestedFilename()).toBe('copa-jumentus-artilharia-story.png');
+
+  const doJogo = page.locator('section').filter({ hasText: /^J2 · / }).getByRole('button', { name: 'Baixar PNG' });
+  const [jogo] = await Promise.all([page.waitForEvent('download'), doJogo.click()]);
+  expect(jogo.suggestedFilename()).toMatch(/^copa-jumentus-j2-[a-z]+-x-[a-z]+-story\.png$/);
 });
 
 test('conta de mesário: só entra no Modo Mesário', async ({ browser, baseURL }) => {

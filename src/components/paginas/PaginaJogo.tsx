@@ -3,10 +3,12 @@ import { duracaoDoTempo } from '@/lib/domain/campeonato/sumula';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AutoAtualizar } from '@/components/campeonato/AutoAtualizar';
+import { BaixarArteJogo } from '@/components/campeonato/BaixarArteJogo';
 import { BotaoImprimir } from '@/components/campeonato/BotaoImprimir';
 import { Sumula } from '@/components/campeonato/Sumula';
 import { Escudo, Secao, SeloStatus } from '@/components/campeonato/ui';
 import { formatarDataHora, indices, lados } from '@/lib/campeonato/consultas';
+import { assinaturaDasArtes, jogoArte } from '@/lib/domain/campeonato/artes';
 import type { Campeonato, Equipe, Partida } from '@/lib/domain/campeonato/tipos';
 
 /** Partida com palco Matchday/Placar Final (manual §7.3) e súmula completa. */
@@ -41,6 +43,7 @@ export function PaginaJogo({ c, base, id }: { c: Campeonato; base: string; id: s
           <Sumula partida={partida} campeonato={c} />
         </Secao>
       </div>
+      {partida.status !== 'agendada' && <BaixarArteJogo jogo={jogoArte(c, partida)} assinatura={assinaturaDasArtes(c)} />}
     </div>
   );
 }

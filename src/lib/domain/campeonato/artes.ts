@@ -7,7 +7,7 @@ import { fundoVisivel } from '@/lib/campeonato/cores';
 import { descreverOrigem } from './chaveamento';
 import { ETAPAS_MATA_MATA } from './modelo';
 import { artilharia, assistencias } from './rankings';
-import type { Campeonato, Equipe, Partida } from './tipos';
+import type { Campeonato, Equipe, EventoPartida, Partida } from './tipos';
 
 export interface LadoArte {
   /** Sigla do time, ou a origem enquanto a vaga não estiver decidida ("3º Grupo Único"). */
@@ -17,8 +17,27 @@ export interface LadoArte {
   cor: string;
 }
 
+/** Lance da arte de um jogo: gol (com assistência) ou cartão. */
+export interface LanceArte {
+  tipo: 'gol' | 'penalti' | 'contra' | 'amarelo' | 'vermelho';
+  minuto?: number;
+  /** Quem fez (no gol contra, o jogador do outro time). */
+  nome: string;
+  assistencia?: string;
+}
+
 export interface JogoArte {
+  /** Id da partida. */
+  id: string;
   numero?: number;
+  /** "Rodada 3", "Semifinal 1", "Final". */
+  rotulo: string;
+  /** Nome da fase ("Grupo Único", "Mata-mata"). */
+  fase: string;
+  /** "SEX 16/01 · 16:42", vazio sem data. */
+  quando: string;
+  /** Lances de cada lado, em ordem de minuto. Gol contra fica do lado que ganhou o gol. */
+  lances: { mandante: LanceArte[]; visitante: LanceArte[] };
   /** "FIM", "AO VIVO" ou o horário ("16:21"). */
   situacao: string;
   encerrado: boolean;
@@ -79,6 +98,44 @@ function hora(dataHora?: string): string {
   return dataHora?.slice(11, 16) || 'A DEFINIR';
 }
 
+const DIAS = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+function quando(dataHora?: string): string {
+  const m = dataHora ? /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})/.exec(dataHora) : null;
+  if (!m) return '';
+  const dia = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))).getUTCDay();
+  return `${DIAS[dia]} ${m[3]}/${m[2]} · ${m[4]}`;
+}
+
+const TIPO_LANCE: Partial<Record<EventoPartida['tipo'], LanceArte['tipo']>> = {
+  gol: 'gol',
+  gol_penalti: 'penalti',
+  'gol-contra': 'contra',
+  amarelo: 'amarelo',
+  vermelho: 'vermelho',
+};
+
+function lances(c: Campeonato, p: Partida): JogoArte['lances'] {
+  const nome = (id?: string) => c.jogadores.find((j) => j.id === id)?.nome;
+  const res: JogoArte['lances'] = { mandante: [], visitante: [] };
+  // Ordem do minuto; sem minuto, na ordem em que foi lançado, depois dos com minuto.
+  const ordem = p.eventos.map((e, i) => ({ e, i })).sort((a, b) => (a.e.minuto ?? 999) - (b.e.minuto ?? 999) || a.i - b.i);
+  for (const { e } of ordem) {
+    const tipo = TIPO_LANCE[e.tipo];
+    if (!tipo) continue;
+    const doMandante = e.equipeId === p.mandanteId;
+    const lado = tipo === 'contra' ? (doMandante ? 'visitante' : 'mandante') : doMandante ? 'mandante' : 'visitante';
+    res[lado].push({ tipo, minuto: e.minuto, nome: nome(e.jogadorId) ?? '—', assistencia: tipo === 'gol' ? nome(e.assistenciaId) : undefined });
+  }
+  return res;
+}
+
+function rotuloDoJogo(c: Campeonato, p: Partida): string {
+  if (p.rotulo) return p.rotulo;
+  const fase = c.fases.find((f) => f.id === p.faseId);
+  if (p.rodada) return `Rodada ${p.rodada}`;
+  return fase?.nome ?? 'Jogo';
+}
+
 export function jogoArte(c: Campeonato, p: Partida): JogoArte {
   const encerrado = p.status === 'encerrada';
   const comPlacar = p.status !== 'agendada';
@@ -90,7 +147,12 @@ export function jogoArte(c: Campeonato, p: Partida): JogoArte {
       : undefined;
   const [a, b] = penaltis ?? [p.golsMandante, p.golsVisitante];
   return {
+    id: p.id,
     numero: p.numero,
+    rotulo: rotuloDoJogo(c, p),
+    fase: fase?.nome ?? '',
+    quando: quando(p.dataHora),
+    lances: lances(c, p),
     situacao: encerrado ? 'FIM' : p.status === 'ao-vivo' ? 'AO VIVO' : hora(p.dataHora),
     encerrado,
     mandante: lado(c, p.mandanteId, p.origemMandante),
@@ -170,4 +232,9 @@ export function rankingArte(c: Campeonato, tipo: 'artilharia' | 'assistencias', 
     momento: `Após ${encerrados} de ${c.partidas.length} jogos`,
     itens,
   };
+}
+
+/** "COPA JUMENTUS 2027" no rodapé das artes: nome mais a edição, sem repetir. */
+export function assinaturaDasArtes(c: Pick<Campeonato, 'nome' | 'edicao'>): string {
+  return c.nome.toUpperCase().includes((c.edicao ?? '').toUpperCase()) ? c.nome : `${c.nome} ${c.edicao ?? ''}`.trim();
 }
