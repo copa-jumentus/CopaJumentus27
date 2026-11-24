@@ -21,7 +21,10 @@ export default async function Admins({ searchParams }: { searchParams: Promise<{
       <Aviso texto={erro} />
 
       <Secao titulo="Nova conta">
-        <p className="mb-4 text-sm text-text-3">A conta nasce com senha temporária, mostrada uma única vez. No primeiro acesso a pessoa cria a própria senha.</p>
+        <p className="mb-4 text-sm text-text-3">
+          A conta nasce com senha temporária, mostrada uma única vez. No primeiro acesso a pessoa cria a própria senha. Conta de mesário só abre o Modo Mesário dos jogos: não vê
+          inscrições, financeiro, sorteio nem as outras contas.
+        </p>
         <FormNovoAdmin />
       </Secao>
 
@@ -42,7 +45,7 @@ export default async function Admins({ searchParams }: { searchParams: Promise<{
                     {c.nome} {c.id === eu.id && <span className="hud-label !text-[11px]">(você)</span>}
                   </p>
                   <p className="font-mono text-sm text-text-3">
-                    {c.usuario} · {situacao}
+                    {c.usuario} · {c.papel === 'mesario' ? 'Mesário' : 'Admin'} · {situacao}
                   </p>
                 </div>
                 {c.ativo && (

@@ -50,6 +50,17 @@ Sem `DATABASE_URL`, o banco é um Postgres local (PGlite) em `dados/pglite`, cri
 
 Sem inscrições cadastradas, o sorteio usa um elenco de exemplo.
 
+### Teste completo do site (ponta a ponta)
+
+```bash
+npx playwright install chromium   # uma vez
+npm run e2e                       # ~3 min: sobe o site num banco descartável e testa tudo
+npm run e2e:producao              # só as páginas públicas, só leitura, no site no ar
+npx playwright show-report        # relatório com prints e vídeo do que falhou
+```
+
+`npm run e2e` usa um banco próprio (`dados/e2e-pglite`, apagado a cada execução) e uma conta `e2e`; não toca no seu `dados/pglite` nem no Neon. Ele percorre as páginas públicas no desktop e no celular e o fluxo inteiro do admin: primeiro acesso com troca de senha, campeonato no modelo oficial, importação das inscrições com as cotas, pote sem estrelas, cerimônia, oficializar, T1 a T8, súmula com gol e assistência, tabela e rankings públicos, financeiro, artes e sair. Pare o `npm run dev` antes (os dois usam a pasta `.next`).
+
 ## Campeonato
 
 Além do sorteio, o site mostra o campeonato para a galera e tem uma área de admin para editar tudo.

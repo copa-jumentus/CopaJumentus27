@@ -6,3 +6,8 @@ next-env.d.ts
 *.tsbuildinfo
 docs/skill-gemini/*.zip
 .env*.local
+
+# Testes de ponta a ponta (Playwright)
+/test-results
+/playwright-report
+/e2e/.estado

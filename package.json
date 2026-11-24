@@ -12,7 +12,9 @@
     "demo": "node scripts/gerar-demo.mjs",
     "db:gerar": "drizzle-kit generate",
     "db:migrar": "node scripts/migrar.mjs",
-    "admin:criar": "node scripts/criar-admin.mjs"
+    "admin:criar": "node scripts/criar-admin.mjs",
+    "e2e": "playwright test",
+    "e2e:producao": "E2E_URL=https://copa-jumentus.vercel.app playwright test --project=publico --project=celular"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
@@ -23,6 +25,7 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
     "@types/node": "22.10.7",
     "@types/react": "19.0.7",
     "@types/react-dom": "19.0.3",

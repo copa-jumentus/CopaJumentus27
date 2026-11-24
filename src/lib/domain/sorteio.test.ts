@@ -50,28 +50,28 @@ function composicao(r: ResultadoSorteioOk, jogadores: readonly Jogador[], times:
 }
 
 describe('cotas de estrelas', () => {
-  it('8 times e 56 de linha: 1 de cada nível e 2 de 3★ por time', () => {
+  it('8 times e 56 de linha: 1 de cada nível e 2 de 4★ por time', () => {
     const c = calcularCotas(JOGADORES_EXEMPLO, 8);
     expect(c.fechou).toBe(true);
     expect(c.vagasPorTime).toBe(7);
     expect(c.niveis.map((n) => [n.nivel, n.necessario])).toEqual([
       [6, 8],
       [5, 8],
-      [4, 8],
-      [3, 16],
+      [4, 16],
+      [3, 8],
       [2, 8],
       [1, 8],
     ]);
   });
 
   it('cota aberta: aponta por nível o que falta ou sobra, e o sorteio não acontece', () => {
-    // Dois jogadores de 3★ viram 4★: 3★ fica com 14 de 16 e 4★ com 10 de 8.
-    const trocar = new Set(JOGADORES_EXEMPLO.filter((j) => j.posicao !== 'GOL' && j.estrelas === 3).slice(0, 2).map((j) => j.id));
-    const jogadores = JOGADORES_EXEMPLO.map((j) => (trocar.has(j.id) ? { ...j, estrelas: 4 as Estrelas } : j));
+    // Dois jogadores de 4★ viram 3★: 4★ fica com 14 de 16 e 3★ com 10 de 8.
+    const trocar = new Set(JOGADORES_EXEMPLO.filter((j) => j.posicao !== 'GOL' && j.estrelas === 4).slice(0, 2).map((j) => j.id));
+    const jogadores = JOGADORES_EXEMPLO.map((j) => (trocar.has(j.id) ? { ...j, estrelas: 3 as Estrelas } : j));
     const c = calcularCotas(jogadores, 8);
     expect(c.fechou).toBe(false);
-    expect(c.pendencias).toContain('3★: 14 de 16, faltam 2.');
-    expect(c.pendencias).toContain('4★: 10 de 8, sobram 2.');
+    expect(c.pendencias).toContain('4★: 14 de 16, faltam 2.');
+    expect(c.pendencias).toContain('3★: 10 de 8, sobram 2.');
 
     const r = sortear({ jogadores, times: TIMES_EXEMPLO }, fonteSemente(1));
     expect(r.ok).toBe(false);
@@ -100,9 +100,9 @@ describe('sortear — invariantes (composição idêntica)', () => {
 
   it.each(casos)('seed %i: mesma contagem por nível e mesma soma em todos os times', (semente) => {
     const r = sortearExemplo(semente);
-    expect(new Set(composicao(r, JOGADORES_EXEMPLO, TIMES_EXEMPLO))).toEqual(new Set(['1,1,1,2,1,1']));
+    expect(new Set(composicao(r, JOGADORES_EXEMPLO, TIMES_EXEMPLO))).toEqual(new Set(['1,1,2,1,1,1']));
     const somas = [...somasDeEstrelas(JOGADORES_EXEMPLO, TIMES_EXEMPLO, r.sorteio.linha).values()];
-    expect(new Set(somas)).toEqual(new Set([24]));
+    expect(new Set(somas)).toEqual(new Set([25]));
   });
 
   it('invariante 1: todo jogador do pote é alocado exatamente uma vez', () => {

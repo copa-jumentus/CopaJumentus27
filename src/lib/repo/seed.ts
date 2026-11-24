@@ -13,7 +13,7 @@ interface LinhaSeed {
 }
 
 // Ex-capitaes fixos: desde 18/11/2026 entram no pote como qualquer jogador.
-// As cotas do exemplo fecham para 8 times (19/11/2026): 6★ 8, 5★ 8, 4★ 8, 3★ 16, 2★ 8, 1★ 8.
+// As cotas do exemplo fecham para 8 times (19/11/2026): 6★ 8, 5★ 8, 4★ 16, 3★ 8, 2★ 8, 1★ 8 (nível duplo 4★).
 const VETERANOS: LinhaSeed[] = [
   { nome: 'Rodrigo Albuquerque', apelido: 'Digão', posicao: 'LIN', estrelas: 6 },
   { nome: 'Marcelo Tavares', apelido: 'Celo', posicao: 'LIN', estrelas: 5 },
@@ -57,14 +57,14 @@ const LINHA: LinhaSeed[] = [
   { nome: 'Kleber Assunção', apelido: 'Kiko', posicao: 'LIN', estrelas: 4 },
   { nome: 'Murilo Tanaka', apelido: 'Japa', posicao: 'LIN', estrelas: 4 },
   // 3 estrelas
-  { nome: 'Nelson Siqueira', apelido: 'Nelsinho', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Osvaldo Brito', apelido: 'Vadinho', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Pedro Ivo Carvalho', apelido: 'Pedrinho', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Renan Guedes', apelido: 'Renanzinho', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Samuel Lacerda', apelido: 'Samuca', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Tales Varejão', apelido: 'Talinho', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Ubirajara Pontes', apelido: 'Bira', posicao: 'LIN', estrelas: 3 },
-  { nome: 'Válter Nunes', apelido: 'Val', posicao: 'LIN', estrelas: 3 },
+  { nome: 'Nelson Siqueira', apelido: 'Nelsinho', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Osvaldo Brito', apelido: 'Vadinho', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Pedro Ivo Carvalho', apelido: 'Pedrinho', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Renan Guedes', apelido: 'Renanzinho', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Samuel Lacerda', apelido: 'Samuca', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Tales Varejão', apelido: 'Talinho', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Ubirajara Pontes', apelido: 'Bira', posicao: 'LIN', estrelas: 4 },
+  { nome: 'Válter Nunes', apelido: 'Val', posicao: 'LIN', estrelas: 4 },
   { nome: 'Wesley Portela', apelido: 'Wes', posicao: 'LIN', estrelas: 3 },
   { nome: 'Yuri Chagas', apelido: 'Yuri', posicao: 'LIN', estrelas: 3 },
   { nome: 'Zeca Moura', apelido: 'Zeca', posicao: 'LIN', estrelas: 3 },

@@ -1,3 +1,5 @@
+import { CronometroAoVivo } from '@/components/campeonato/CronometroAoVivo';
+import { duracaoDoTempo } from '@/lib/domain/campeonato/sumula';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AutoAtualizar } from '@/components/campeonato/AutoAtualizar';
@@ -29,6 +31,7 @@ export function PaginaJogo({ c, base, id }: { c: Campeonato; base: string; id: s
           campeonatoNome={`${c.nome}${c.edicao && !c.nome.includes(c.edicao) ? ` ${c.edicao}` : ''}`}
           faseNome={fase?.nome}
           partida={partida}
+          duracaoMin={duracaoDoTempo(c, partida)}
           mandante={infoLados.mandante}
           visitante={infoLados.visitante}
           rotuloMandante={infoLados.rotuloMandante}
@@ -46,6 +49,7 @@ function PalcoPartida({
   campeonatoNome,
   faseNome,
   partida,
+  duracaoMin,
   mandante,
   visitante,
   rotuloMandante,
@@ -54,6 +58,7 @@ function PalcoPartida({
   campeonatoNome: string;
   faseNome?: string;
   partida: Partida;
+  duracaoMin: number;
   mandante?: Equipe;
   visitante?: Equipe;
   rotuloMandante?: string;
@@ -150,6 +155,15 @@ function PalcoPartida({
                   <span className="mx-1.5 text-text-3 sm:mx-2.5">:</span>
                   {partida.golsVisitante}
                 </p>
+                {partida.status === 'ao-vivo' && partida.relogio && (
+                  <CronometroAoVivo
+                    relogio={partida.relogio}
+                    duracaoMin={duracaoMin}
+                    agoraServidor={Date.now()}
+                    classeNumero="numero mt-1 text-2xl text-[var(--accent)]"
+                    classeRotulo="hud-label !text-[11px]"
+                  />
+                )}
                 {penaltis && (
                   <p
                     className="corte-direita mt-2 inline-block px-2.5 py-0.5 font-mono text-xs font-bold uppercase tracking-wider"

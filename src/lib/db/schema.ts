@@ -17,6 +17,7 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { Relogio } from '../domain/campeonato/relogio';
 import type { Programacao } from '../domain/campeonato/programacao';
 import type { Financeiro } from '../domain/campeonato/financeiro';
 import type { Historico, Premio } from '../domain/campeonato/tipos';
@@ -199,6 +200,8 @@ export const partida = pgTable(
     dataHora: text('data_hora'),
     local: text('local'),
     status: text('status', { enum: ['agendada', 'ao-vivo', 'encerrada'] }).notNull().default('agendada'),
+    /** Cronômetro do Modo Mesário (lib/domain/campeonato/relogio.ts). */
+    relogio: jsonb('relogio').$type<Relogio>(),
     golsMandante: smallint('gols_mandante').notNull().default(0),
     golsVisitante: smallint('gols_visitante').notNull().default(0),
     penaltisMandante: smallint('penaltis_mandante'),
@@ -246,10 +249,15 @@ export const admin = pgTable(
     deveTrocarSenha: boolean('deve_trocar_senha').notNull().default(true),
     versaoSessao: integer('versao_sessao').notNull().default(1),
     ativo: boolean('ativo').notNull().default(true),
+    /** admin: tudo; mesario: só o Modo Mesário (pedido do operador em 21/11/2026). */
+    papel: text('papel', { enum: ['admin', 'mesario'] }).notNull().default('admin'),
     tentativasFalhas: integer('tentativas_falhas').notNull().default(0),
     bloqueadoAte: timestamp('bloqueado_ate', { withTimezone: true }),
     criadoEm: timestamp('criado_em', { withTimezone: true }).notNull().defaultNow(),
     senhaAlteradaEm: timestamp('senha_alterada_em', { withTimezone: true }),
   },
-  (t) => [check('admin_usuario_minusculo', sql`${t.usuario} = lower(${t.usuario})`)],
+  (t) => [
+    check('admin_usuario_minusculo', sql`${t.usuario} = lower(${t.usuario})`),
+    check('admin_papel_valido', sql`${t.papel} in ('admin', 'mesario')`),
+  ],
 );

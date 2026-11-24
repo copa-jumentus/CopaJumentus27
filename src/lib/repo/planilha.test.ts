@@ -11,8 +11,8 @@ function linha(nome: string, pos: string, est: string, status = 'Confirmado'): s
 function cadastroCompleto(): string {
   const linhas = [CAB];
   ORDEM_TIMES.forEach((t, i) => {
-    // Cotas fechadas (composição idêntica, 19/11/2026): por time 6, 5, 4, 3, 3, 2, 1.
-    linhas.push(linha(`Veterano ${i} ${t}`, 'MEI', '3'));
+    // Cotas fechadas (composição idêntica, 19/11/2026): por time 6, 5, 4, 4, 3, 2, 1.
+    linhas.push(linha(`Veterano ${i} ${t}`, 'MEI', '4'));
     linhas.push(linha(`Goleiro ${i}`, 'GOL', ''));
     for (let k = 0; k < 6; k++) linhas.push(linha(`Jogador ${i}-${k}`, 'ATA', String(6 - k)));
   });

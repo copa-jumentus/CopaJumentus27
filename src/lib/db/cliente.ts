@@ -2,7 +2,7 @@
 // - Com DATABASE_URL (Neon na Vercel): Postgres de verdade via postgres.js.
 //   As migrações rodam no build (scripts/migrar.mjs).
 // - Sem DATABASE_URL (desenvolvimento): PGlite, um Postgres embutido gravado em
-//   dados/pglite. As migrações rodam sozinhas na primeira conexão.
+//   dados/pglite (ou em PGLITE_PASTA). As migrações rodam sozinhas na primeira conexão.
 
 import path from 'node:path';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
@@ -43,7 +43,8 @@ export function banco(): Promise<Banco> {
     const url = process.env.DATABASE_URL;
     global.__bancoCopa = url
       ? conectarPostgres(url)
-      : conectarPglite(path.join(process.cwd(), 'dados', 'pglite'));
+      : // PGLITE_PASTA: banco descartável dos testes de ponta a ponta (e2e/), sem tocar no seu dados/pglite.
+        conectarPglite(process.env.PGLITE_PASTA || path.join(process.cwd(), 'dados', 'pglite'));
     global.__bancoCopa.catch(() => {
       global.__bancoCopa = undefined;
     });

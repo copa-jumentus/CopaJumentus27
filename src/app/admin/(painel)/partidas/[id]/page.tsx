@@ -63,9 +63,16 @@ export default async function ControlePartida({
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/partidas" className="hud-label">
-        ← Partidas
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/admin/partidas" className="hud-label">
+          ← Partidas
+        </Link>
+        {p.status !== 'encerrada' && (
+          <Link href={`/admin/mesario/${p.id}`} className="btn-cta">
+            <span>Modo Mesário</span>
+          </Link>
+        )}
+      </div>
       <Aviso texto={erro} />
       <Aviso texto={ok} tipo="ok" />
 

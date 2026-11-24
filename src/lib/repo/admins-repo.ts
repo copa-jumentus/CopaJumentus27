@@ -104,7 +104,12 @@ export async function trocarSenha(
 }
 
 /** Cria a conta com senha temporária (mostrada uma vez) e troca obrigatória. */
-export async function criarAdmin(usuario: string, nome: string, db?: Banco): Promise<{ admin: Admin; senhaTemporaria: string }> {
+export async function criarAdmin(
+  usuario: string,
+  nome: string,
+  db?: Banco,
+  papel: Admin['papel'] = 'admin',
+): Promise<{ admin: Admin; senhaTemporaria: string }> {
   const u = normalizarUsuario(usuario);
   if (!USUARIO_VALIDO.test(u)) {
     throw new ErroConta('Usuário: de 2 a 32 caracteres, só letras sem acento, números, ponto, hífen e sublinhado.');
@@ -114,7 +119,7 @@ export async function criarAdmin(usuario: string, nome: string, db?: Banco): Pro
   const c = await conexao(db);
   const [criado] = await c
     .insert(admin)
-    .values({ usuario: u, nome: n, senhaHash: await gerarHash(senhaTemporaria), deveTrocarSenha: true })
+    .values({ usuario: u, nome: n, papel, senhaHash: await gerarHash(senhaTemporaria), deveTrocarSenha: true })
     .onConflictDoNothing({ target: admin.usuario })
     .returning();
   if (!criado) throw new ErroConta(`Já existe um admin com o usuário "${u}".`);
@@ -145,9 +150,13 @@ export async function desativarAdmin(adminId: number, porAdminId: number, db?: B
   const c = await conexao(db);
   await c.transaction(async (tx) => {
     // Trava todas as contas ativas: duas desativações ao mesmo tempo não zeram os admins.
-    const ativos = await tx.select({ id: admin.id }).from(admin).where(eq(admin.ativo, true)).for('update');
-    if (!ativos.some((a) => a.id === adminId)) throw new ErroConta('Conta não encontrada ou já desativada.');
-    if (ativos.length <= 1) throw new ErroConta('Não dá para desativar o último admin ativo.');
+    const ativos = await tx.select({ id: admin.id, papel: admin.papel }).from(admin).where(eq(admin.ativo, true)).for('update');
+    const alvo = ativos.find((a) => a.id === adminId);
+    if (!alvo) throw new ErroConta('Conta não encontrada ou já desativada.');
+    // Conta de mesário não administra nada: o que não pode zerar são os admins.
+    if (alvo.papel === 'admin' && ativos.filter((a) => a.papel === 'admin').length <= 1) {
+      throw new ErroConta('Não dá para desativar o último admin ativo.');
+    }
     await tx
       .update(admin)
       .set({ ativo: false, versaoSessao: sql`${admin.versaoSessao} + 1` })

@@ -11,9 +11,10 @@ Este arquivo é a fonte de verdade do projeto. Ao implementar qualquer coisa, si
 | Papel | Quem | O que faz |
 |---|---|---|
 | **Operador** | o dono do projeto (única pessoa com acesso de escrita) | cadastra jogadores, dispara o sorteio, conduz a cerimônia na própria tela e, depois, registra o capitão que cada time escolheu |
+| **Mesário** | quem anota o jogo na beira do campo (conta própria, papel `mesario`) | só o Modo Mesário: lista de jogos, cronômetro, lances e pênaltis (§4.5, §8.11) |
 | **Plateia** | a galera da pelada | abre o **link de resultado** no celular depois da cerimônia e vê os elencos |
 
-Há **contas de admin**, só para a organização (decisão do operador em 17/11/2026): cada admin entra com usuário e senha próprios e só admins editam qualquer coisa. Não há níveis entre admins. A plateia não tem conta nem login: vê o campeonato (tabela, jogos, rankings, elencos) e nunca vê estrelas.
+Há **contas de admin**, só para a organização (decisão do operador em 17/11/2026): cada admin entra com usuário e senha próprios e só admins editam qualquer coisa. Não há níveis entre admins. A única exceção é a **conta de mesário** (decisão do operador em 21/11/2026: "o mesário deve ter um login"): também entra com usuário e senha, mas só abre o Modo Mesário. A plateia não tem conta nem login: vê o campeonato (tabela, jogos, rankings, elencos) e nunca vê estrelas.
 
 ---
 
@@ -35,6 +36,7 @@ Decisões do operador em 17/11/2026 que ampliaram esta fase (§8.6):
 - **Histórico de edições**: cada campeonato encerrado continua consultável em `/edicoes/[slug]`.
 - **Exportação/impressão limpa** de súmula, classificação e elencos (CSS de impressão; sem biblioteca de PDF).
 - **Modelo oficial "Copa Jumentus · 8 times · 34 jogos"**, aplicado com um clique ao criar o campeonato. O formato livre (§8.1) continua existindo para outras edições.
+- **Modo Mesário e telão** (pedido do operador em 21/11/2026, §8.11): cronômetro do jogo, lançamento na beira do campo com fila offline e telão público.
 - **Financeiro e patrocinadores** (pedido do operador em 18/11/2026, base na planilha "Financeiro Copa Jumentus 2027"): gastos, patrocínios e outras entradas editáveis em Admin › Financeiro, com o valor por atleta; patrocinadores fechados aparecem no Início (§8.8).
 - **Edições antigas e premiação individual** (pedido do operador em 17/11/2026: "coloque as duas últimas edições no menu"): as edições jogadas no Copa Fácil entram com pódio, artilharia, assistências e prêmios lançados à mão (§8.7).
 
@@ -76,9 +78,9 @@ interface Time {
 
 ### 3.3 Sorteio de linha com composição idêntica
 
-Decisão do operador em 19/11/2026; substituiu a serpentina com tolerância de 2 estrelas. Todo time recebe **exatamente a mesma quantidade de jogadores de cada nível**. Com 8 times e 56 jogadores de linha: **1 de 6★, 1 de 5★, 1 de 4★, 2 de 3★, 1 de 2★, 1 de 1★** por time (24 estrelas cada).
+Decisão do operador em 19/11/2026; substituiu a serpentina com tolerância de 2 estrelas. Todo time recebe **exatamente a mesma quantidade de jogadores de cada nível**. Com 8 times e 56 jogadores de linha: **1 de 6★, 1 de 5★, 2 de 4★, 1 de 3★, 1 de 2★, 1 de 1★** por time (25 estrelas cada).
 
-**Cotas** (`lib/domain/cotas.ts`, `calcularCotas`, puro e testado), derivadas do cadastro (§3.6): vagas por time = jogadores de linha ÷ times; 1 vaga por nível e a sobra no `NIVEL_DUPLO` (`config.ts`, 3). Para esta edição: 6★ 8, 5★ 8, 4★ 8, 3★ 16, 2★ 8, 1★ 8. Total que não divide pelos times, ou nível com contagem diferente da cota, é pendência por nível ("3★: 14 de 16, faltam 2.") e **bloqueia o sorteio**.
+**Cotas** (`lib/domain/cotas.ts`, `calcularCotas`, puro e testado), derivadas do cadastro (§3.6): vagas por time = jogadores de linha ÷ times; 1 vaga por nível e a sobra no `NIVEL_DUPLO` (`config.ts`, **4**; decisão do operador em 19/11/2026, antes era 3). Para esta edição: 6★ 8, 5★ 8, 4★ 16, 3★ 8, 2★ 8, 1★ 8. Total que não divide pelos times, ou nível com contagem diferente da cota, é pendência por nível ("4★: 14 de 16, faltam 2.") e **bloqueia o sorteio**.
 
 Algoritmo (`lib/domain/sorteio.ts`):
 1. Validar as cotas. Se não fecharem, **não sortear**: `sortear` devolve `{ ok: false, pendencias }`.
@@ -105,7 +107,7 @@ Posição de linha (ZAG/MEI/ATA) não entra no sorteio: a inscrição marca só 
 
 ### 3.6 Configuração
 Constantes de regra ficam num único módulo (`src/lib/config.ts`), não espalhadas:
-`ESTRELAS_MIN = 1`, `ESTRELAS_MAX = 6`, `NIVEL_DUPLO = 3`. (`TOLERANCIA_ESTRELAS` e `MAX_TENTATIVAS` saíram em 19/11/2026 com a composição idêntica.)
+`ESTRELAS_MIN = 1`, `ESTRELAS_MAX = 6`, `NIVEL_DUPLO = 4`. (`TOLERANCIA_ESTRELAS` e `MAX_TENTATIVAS` saíram em 19/11/2026 com a composição idêntica.)
 Número de times e tamanho de elenco são **derivados do cadastro**, nunca hardcoded.
 
 ---
@@ -117,6 +119,7 @@ Número de times e tamanho de elenco são **derivados do cadastro**, nunca hardc
 - **Postgres com Drizzle ORM** (§9): Neon em produção (Vercel), PGlite (Postgres em WebAssembly, arquivo local) em desenvolvimento. Decisão do operador em 17/11/2026.
 - **Contas de admin** (tabela `admin`, §9), detalhes em §4.5. `src/middleware.ts` protege `/admin`, `/sorteio` e `/cerimonia` conferindo só o cookie; cada server action e cada layout do admin passam por `exigirAdmin()`, que confere a conta no banco.
 - Testes: **Vitest** — obrigatórios para a camada de domínio (§4.3).
+- **Ponta a ponta: Playwright** (pedido do operador em 19/11/2026: "um script de automação que abre o site e testa todas as funcionalidades"). `e2e/publico.spec.ts` (páginas públicas, só leitura, desktop e celular) e `e2e/admin.spec.ts` (fluxo completo do admin, em ordem). `npm run e2e` sobe o `next dev` com `PGLITE_PASTA=dados/e2e-pglite` e `DATABASE_URL` vazia (`e2e/preparar.mjs` apaga o banco e cria a conta `e2e` com troca obrigatória); `npm run e2e:producao` roda só o público contra o site no ar. O fluxo do admin **nunca** roda em produção. Mudou uma tela coberta, atualize o teste na mesma mudança.
 
 ### 4.2 Camada de dados — trocável de propósito
 A decisão de persistência foi **adiada**. Portanto toda leitura/escrita passa por uma interface única:
@@ -138,7 +141,7 @@ interface CopaRepo {
   - Colunas do CSV (cabeçalho, sem acento/caixa): `Nome`, `Apelido`, `Estrelas` (1–6), `Status` (só `Confirmado` entra) e, opcional, `Goleiro` (sim/x/1) — ou a antiga `Posição`, da qual só `GOL` importa (`lerGoleiro`). Sem as duas, todos são de linha. Uma coluna `Capitão do time` antiga é ignorada, e a coluna `inscricao.capitao_de` do banco ficou sem uso.
   - Os times do sorteio são as **equipes do campeonato em edição**, na ordem cadastrada (`carregarCadastro`).
   - Goleiro com `Estrelas` vazio recebe `ESTRELAS_MIN` (não conta no balanceamento, §3.2).
-  - Qualquer pendência (estrelas vazias em jogador de linha, nome repetido, menos de 2 equipes, **cota de estrelas aberta**) **bloqueia** o botão de sorteio. Na tela de sorteio e na cerimônia, a cota aberta aparece só como "As cotas de estrelas ainda não fecharam. Ajuste em Admin › Inscrições.", sem citar níveis; o contador por nível (6★ 8/8 … 3★ 14/16) fica em Admin › Inscrições.
+  - Qualquer pendência (estrelas vazias em jogador de linha, nome repetido, menos de 2 equipes, **cota de estrelas aberta**) **bloqueia** o botão de sorteio. Na tela de sorteio e na cerimônia, a cota aberta aparece só como "As cotas de estrelas ainda não fecharam. Ajuste em Admin › Inscrições.", sem citar níveis; o contador por nível (6★ 8/8 … 4★ 14/16) fica em Admin › Inscrições.
 - **`dados/` está no `.gitignore`** (exceto `dados/*.example.*`): lá fica o banco local (`dados/pglite`). Mantenha `dados/inscritos.example.csv` como referência de formato do CSV.
 - Nenhum componente de UI importa `localStorage`, `fs`, caminho de arquivo ou o cliente do banco direto. Tudo pelos módulos de `src/lib/repo/`.
 
@@ -174,6 +177,7 @@ Substituiu a senha única `ADMIN_SENHA` em 17/11/2026. Código em `src/lib/auth/
 - **Troca obrigatória:** com `deve_trocar_senha`, toda página do admin (painel, `/sorteio`, `/cerimonia`, via `GuardaAdmin`) fica inerte sob um pop-up que não fecha (sem X, Esc ou clique fora) e `exigirAdmin()` recusa qualquer ação no servidor até a troca.
 - **Gestão:** Admin › Admins lista, cria conta (senha temporária mostrada uma vez, só na resposta da ação), redefine senha (nova temporária, troca forçada, desbloqueia) e desativa. Ninguém desativa a própria conta nem o último admin ativo. Admin › Minha conta troca a própria senha (pede a atual).
 - **Primeira conta** num banco vazio: `npm run admin:criar -- <usuario> [Nome]`.
+- **Papel** (`admin.papel`, `admin` | `mesario`, padrão `admin`; decisão do operador em 21/11/2026). `exigirAdmin()` só aceita `admin`; conta de mesário que cai nele é mandada para `/admin/mesario`. `exigirMesario()` aceita os dois e vale só para o Modo Mesário (`/admin/mesario`, `/admin/mesario/[id]`, `app/admin/acoes-mesario.ts`) e para a troca da própria senha. O mesário opera só no campeonato atual do site (`idDoCampeonatoDoMesario`), não escolhe campeonato, não vê súmula completa, inscrições, estrelas, financeiro, sorteio nem as contas. O login de mesário cai direto na lista de jogos. Admin › Admins escolhe o tipo ao criar a conta. "Último admin ativo" conta só papel `admin`.
 
 ---
 
@@ -204,6 +208,7 @@ Tokens em `src/app/globals.css` (fonte única; o Tailwind só aponta para eles):
 - **Início:** andamento ("22 de 34 jogos", barra dourada, dia), o jogo ao vivo ou o próximo em destaque no palco do Matchday (escudos grandes, placar ou horário no centro, cores dos times só nas bordas), "Na sequência" e "Últimos resultados". O pódio tem forma de pódio: campeão no centro e mais alto, só ele em dourado.
 - **Andamento e projeção** ficam em `lib/domain/campeonato/andamento.ts` (puro, testado).
 - **Rankings no celular:** uma categoria por vez, em abas fixas no topo (`AbasRankings`); no desktop, todas na grade.
+- **Modo Mesário** (`/admin/mesario/[id]`, `components/admin/MesarioCliente.tsx`) e **telão** (`/telao`): tela inteira, sem a barra do site (§8.11).
 - **Súmula rápida** (`components/admin/LancadorEventos.tsx`): na beira do campo, lançar é tocar no jogador, depois no evento (Gol, Gol de pênalti, Amarelo, Vermelho, Pênalti perdido, Gol contra; Defesa só para o goleiro) e, se for gol, em quem deu a assistência ou "Sem assistência". Minuto é opcional. A confirmação vem em toast com o placar. Apagar um evento pede dois toques ("Apagar?"). A regra continua toda em `adicionarEvento`/`removerEvento`.
 - **Painel do admin:** o jogo da vez (ao vivo ou próximo) em destaque com "Abrir súmula", números do campeonato e "Na sequência".
 - **Cerimônia projetada:** sem a barra do site; controles discretos no canto ("Tela cheia" e "Voltar" ao sorteio). Espaço avança um passo (nome, depois time); seta esquerda volta um passo. Com `prefers-reduced-motion`, as roletas (nome e time) não rodam.
@@ -317,8 +322,8 @@ Nunca introduza visual corporativo/SaaS genérico, biblioteca de componentes com
 - **Estrelas nunca aparecem em página pública** nem na tela de sorteio (§5).
 
 ### 8.5 Rotas
-- Públicas: `/`, `/classificacao`, `/jogos`, `/jogos/[id]`, `/rankings`, `/equipes`, `/regulamento` mostram o **campeonato atual**: o mais recente em andamento; senão em inscrições; senão o último encerrado. Rascunho nunca é público. Histórico: `/edicoes` e `/edicoes/[slug]/…` (as mesmas telas, componentes em `src/components/paginas/`). Mais `/resultado/[payload]`.
-- Admin: `/admin`, `/admin/campeonatos`, `/admin/inscricoes`, `/admin/campeonato`, `/admin/fases`, `/admin/partidas`, `/admin/partidas/[id]`, `/admin/equipes`, `/admin/pagamentos`, `/admin/financeiro`, `/admin/artes`, `/admin/admins`, `/admin/conta`, `/sorteio`, `/cerimonia`. Login em `/admin/entrar`.
+- Públicas: `/`, `/classificacao`, `/jogos`, `/jogos/[id]`, `/rankings`, `/equipes`, `/regulamento`, `/telao` mostram o **campeonato atual**: o mais recente em andamento; senão em inscrições; senão o último encerrado. Rascunho nunca é público. Histórico: `/edicoes` e `/edicoes/[slug]/…` (as mesmas telas, componentes em `src/components/paginas/`). Mais `/resultado/[payload]`.
+- Admin: `/admin`, `/admin/campeonatos`, `/admin/inscricoes`, `/admin/campeonato`, `/admin/fases`, `/admin/partidas`, `/admin/partidas/[id]`, `/admin/mesario/[id]`, `/admin/equipes`, `/admin/pagamentos`, `/admin/financeiro`, `/admin/artes`, `/admin/admins`, `/admin/conta`, `/sorteio`, `/cerimonia`. Login em `/admin/entrar`.
 
 ### 8.6 Modelo oficial "Copa Jumentus · 8 times · 34 jogos"
 Decisão do operador em 17/11/2026. Código em `lib/domain/campeonato/modelo.ts` (tabela e aplicação) e `chaveamento.ts` (participantes, trava e consistência), puro e testado.
@@ -355,13 +360,23 @@ Pedido do operador em 19/11/2026: "o botão de gerar a arte já pronta, pra feed
 - Dados em `lib/domain/campeonato/artes.ts` (`blocosDeJogos`, `rankingArte`, puro e testado): placar do vencedor em dourado, pênaltis só no mata-mata empatado, jogo sem resultado com o horário, vaga aberta com a origem, cor do time por `fundoVisivel`.
 - Desenho em `components/admin/GeradorArtes.tsx`, **canvas 2D no navegador** (sem dependência), na grade do manual (margens 80, cabeçalho com brasão e rótulo, rodapé com filete dourado e @C.R.JUMENTUS; no stories, nada antes de y 250 nem depois de y 1580), com as fontes do site (`--font-*`) e os escudos oficiais. "Baixar PNG" e, no celular, "Compartilhar" (Web Share com arquivo).
 
+
+### 8.11 Modo Mesário e telão
+Pedido do operador em 21/11/2026 ("faça a de modo mesário"), para o dia do jogo: um campo, internet de celular.
+- **Regras da súmula no domínio** (`lib/domain/campeonato/sumula.ts`, testado): `lancarEvento`, `apagarEvento`, `comandarRelogio`, `duracaoDoTempo`. A súmula completa (`adicionarEvento`/`removerEvento` em `acoes.ts`) e o mesário usam as mesmas funções. Lançar em jogo encerrado é recusado (correção fica na súmula completa). Erro de regra é `ErroDoJogo`.
+- **Cronômetro** (`relogio.ts`, testado), gravado em `partida.relogio` (jsonb): fases antes → 1º tempo → intervalo → 2º tempo → fim, com pausa; calculado de instantes, então mesário, telão e página do jogo mostram o mesmo tempo. Duração de cada tempo pela programação (grupos 8, mata-mata 10). O minuto do lance sai do cronômetro (2º tempo continua a contagem: 9 a 16); no acréscimo, fica no último minuto do tempo. Começar o 1º tempo põe o jogo ao vivo. Comandos são **idempotentes** ("fim do 1º tempo" repetido não faz nada) e fora de ordem é erro visível.
+- **Lista de jogos** `/admin/mesario`: a tela inicial da conta de mesário (§4.5), na ordem dos jogos, com o jogo da vez em destaque e "Sair".
+- **Tela** `/admin/mesario/[id]` (botão "Modo Mesário" no painel e na súmula): placar, cronômetro grande, jogadores dos dois times (goleiro primeiro, suspensos marcados), lançamento em 2–3 toques (jogador → evento → assistência), lista de lances com apagar em dois toques. Fim do 1º tempo e fim do jogo pedem dois toques. Empate no mata-mata: depois do fim do 2º tempo a tela abre a **disputa de pênaltis** (+/− de cada lado; a operação grava o placar absoluto, então reenviar é seguro; `definirPenaltis` em `sumula.ts`) e só encerra com vencedor. Correção de jogo encerrado fica na súmula completa, só para admin. Tela acesa (Wake Lock) e vibração ao lançar.
+- **Fila offline** (`mesario.ts`, testado; `lib/repo/fila-mesario.ts` no localStorage): cada toque vira uma operação com **id próprio** gerado no celular e o instante corrigido pelo relógio do servidor; a fila sobe uma por vez pela server action `operarMesario` (`app/admin/acoes-mesario.ts`, que não redireciona). Sem internet, a tela mostra "Sem internet · N na fila", os lances como "Na fila" e o placar já atualizado (`comPendentes`); ao voltar, reenvia sozinha. Reenviar é seguro: evento com id já gravado é ignorado e o cronômetro aceita o mesmo comando duas vezes. Erro de regra tira a operação da fila e aparece na tela; erro de servidor/rede mantém e tenta de novo. Aba antiga após deploy recarrega com a fila salva. Outro celular no mesmo jogo é acompanhado a cada 8 s.
+- **Telão** `/telao` (público, sem barra, para TV ou notebook no campo): jogo ao vivo ou o próximo, placar e cronômetro grandes, últimos lances e "Na sequência" com horários; atualiza a cada 5 s. A página pública do jogo também mostra o cronômetro quando está ao vivo.
+- Testado de ponta a ponta em `e2e/admin.spec.ts` (inclusive internet caindo e voltando).
 ---
 
 ## 9. Banco de dados
 
 - **Produção:** Postgres no **Neon** (São Paulo, `sa-east-1`), app na **Vercel** com funções em São Paulo (`vercel.json`, `gru1`) para ficar perto do banco. Repositório na organização `copa-jumentus` do GitHub (a Vercel não publica repo de conta pessoal de outra pessoa). `DATABASE_URL` (connection string *pooled* do Neon) nas variáveis de ambiente da Vercel. O cliente usa `postgres` 3.x com `prepare: false` (exigido pelo pooler).
 - **Desenvolvimento:** sem `DATABASE_URL`, `src/lib/db/cliente.ts` abre um **PGlite** em `dados/pglite` e aplica as migrações sozinho. Para começar do zero, apague a pasta. Testes usam PGlite em memória (`bancoDeTeste()`).
-- **Esquema:** `src/lib/db/schema.ts`. Tabelas: `admin` (contas, §4.5), `campeonato` (um por edição: `slug` único, `edicao`, `status` rascunho|inscricoes|andamento|encerrado, `modelo` copa-jumentus-8|livre, `banner`, `escudo`, `duplicado_de`, `programacao`, `premios`, `historico` e `financeiro` jsonb), `inscricao`, `equipe`, `jogador`, `fase`, `grupo`, `grupo_equipe`, `partida`, `evento`. As restrições do domínio que o banco consegue garantir (estrelas 1–6, mandante ≠ visitante, FKs) estão em `check` e `foreign key`.
+- **Esquema:** `src/lib/db/schema.ts`. Tabelas: `admin` (contas, §4.5), `campeonato` (um por edição: `slug` único, `edicao`, `status` rascunho|inscricoes|andamento|encerrado, `modelo` copa-jumentus-8|livre, `banner`, `escudo`, `duplicado_de`, `programacao`, `premios`, `historico` e `financeiro` jsonb), `inscricao`, `equipe`, `jogador`, `fase`, `grupo`, `grupo_equipe`, `partida` (com `relogio` jsonb, §8.11), `evento`. As restrições do domínio que o banco consegue garantir (estrelas 1–6, mandante ≠ visitante, FKs) estão em `check` e `foreign key`.
 - **Migrações:** SQL em `drizzle/`, geradas com `npm run db:gerar` depois de mudar o esquema (revise o SQL e versione). `npm run build` roda `scripts/migrar.mjs` antes do `next build`, então o deploy na Vercel atualiza o Neon sozinho. Nunca edite uma migração já aplicada; gere outra.
 - **Vários campeonatos:** `inscricao`, `equipe` e `fase` têm `campeonato_id`; jogador, grupo, partida e evento pertencem pelo pai. Ids de texto novos (`novoId()`, 12 hex) são únicos entre campeonatos. `campeonato_id` tem default 1 só por compatibilidade com o código anterior (campeonato único) durante a transição; o código atual sempre informa.
 - **Duplicar** copia configuração, fases, zonas, grupos e equipes (ids novos); elencos opcionais (pagamento zerado); nunca partidas, súmulas, pagamentos nem inscrições. Nasce em rascunho, com `duplicado_de`.

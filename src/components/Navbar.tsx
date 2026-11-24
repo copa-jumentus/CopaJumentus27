@@ -72,8 +72,9 @@ export function Navbar() {
   const pathname = usePathname();
   const { edicao, caminho } = caminhos(pathname);
   const menuPublico = !SEM_MENU_PUBLICO.test(pathname);
-  // Cerimônia é projetada: tela inteira para o palco, sem barra (ela tem os próprios controles).
-  if (/^\/cerimonia(\/|$)/.test(pathname)) return null;
+  // Cerimônia e telão são projetados, e o Modo Mesário é a beira do campo: tela
+  // inteira, sem barra (cada um tem os próprios controles).
+  if (/^\/(cerimonia|telao|admin\/mesario)(\/|$)/.test(pathname)) return null;
 
   return (
     <>

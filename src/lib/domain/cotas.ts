@@ -23,7 +23,7 @@ export interface Cotas {
   jogadoresDeLinha: number;
   vagasPorTime: number;
   niveis: CotaNivel[];
-  /** Pendências em texto, por nível ("3★: 14 de 16, faltam 2"). Só para Admin › Inscrições. */
+  /** Pendências em texto, por nível ("4★: 14 de 16, faltam 2"). Só para Admin › Inscrições. */
   pendencias: string[];
   fechou: boolean;
 }
