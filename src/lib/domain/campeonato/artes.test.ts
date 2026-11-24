@@ -70,6 +70,31 @@ describe('artes do Instagram', () => {
     expect(rep.jogos[0]).toMatchObject({ penaltis: [3, 4], vencedor: 'visitante' });
   });
 
+  it('arte de um jogo: lances de cada lado em ordem de minuto, gol contra para quem ganhou', () => {
+    const c = campeonato();
+    const j1 = c.partidas.find((p) => p.numero === 1)!;
+    const m = j1.mandanteId!;
+    const v = j1.visitanteId!;
+    j1.dataHora = '2027-01-15T16:00';
+    j1.status = 'encerrada';
+    j1.eventos = [
+      { id: 'x1', tipo: 'gol', jogadorId: `${m}1`, equipeId: m, assistenciaId: `${m}2`, minuto: 12 },
+      { id: 'x2', tipo: 'amarelo', jogadorId: `${v}1`, equipeId: v, minuto: 3 },
+      { id: 'x3', tipo: 'gol-contra', jogadorId: `${m}2`, equipeId: m, minuto: 9 },
+      { id: 'x4', tipo: 'gol_penalti', jogadorId: `${v}2`, equipeId: v },
+      { id: 'x5', tipo: 'defesa', jogadorId: `${v}1`, equipeId: v, minuto: 5 },
+    ];
+    const [r1] = blocosDeJogos(c);
+    const j = r1.jogos[0];
+    expect(j).toMatchObject({ id: j1.id, rotulo: 'Rodada 1', quando: 'SEX 15/01 · 16:00' });
+    expect(j.lances.mandante).toEqual([{ tipo: 'gol', minuto: 12, nome: `Jogador ${m}1`, assistencia: `Jogador ${m}2` }]);
+    expect(j.lances.visitante.map((l) => [l.tipo, l.minuto])).toEqual([
+      ['amarelo', 3],
+      ['contra', 9],
+      ['penalti', undefined],
+    ]);
+  });
+
   it('ranking: top 8, empatados dividem a posição, com o momento do campeonato', () => {
     const c = campeonato();
     const j1 = c.partidas.find((p) => p.numero === 1)!;

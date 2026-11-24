@@ -1,6 +1,6 @@
 import { GeradorArtes } from '@/components/admin/GeradorArtes';
 import { campeonatoDoAdmin } from '@/lib/campeonato/selecao';
-import { blocosDeJogos, rankingArte } from '@/lib/domain/campeonato/artes';
+import { assinaturaDasArtes, blocosDeJogos, rankingArte } from '@/lib/domain/campeonato/artes';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Artes — Admin Copa Jumentus' };
@@ -10,7 +10,7 @@ export default async function Artes() {
   const blocos = blocosDeJogos(c);
   // Começa na última rodada com jogo encerrado; sem nenhum, na primeira.
   const ultima = [...blocos].reverse().find((b) => b.jogos.some((j) => j.encerrado));
-  const assinatura = c.nome.toUpperCase().includes(c.edicao ?? '') ? c.nome : `${c.nome} ${c.edicao ?? ''}`.trim();
+  const assinatura = assinaturaDasArtes(c);
 
   return (
     <div className="space-y-6">
@@ -18,7 +18,7 @@ export default async function Artes() {
       <p className="text-sm text-text-2">
         Artes prontas para o Instagram, montadas com os resultados e os rankings do campeonato: escolha a rodada e o formato, confira a
         prévia e baixe o PNG (no celular, &ldquo;Compartilhar&rdquo; abre direto o Instagram ou o WhatsApp). Jogo ainda sem resultado
-        aparece com o horário.
+        aparece com o horário. A arte de cada jogo também fica pública, na página do jogo.
       </p>
       {blocos.length === 0 ? (
         <p className="text-sm text-text-3">Este campeonato ainda não tem jogos.</p>
