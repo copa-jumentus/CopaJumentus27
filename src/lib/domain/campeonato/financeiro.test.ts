@@ -18,7 +18,18 @@ describe('financeiro', () => {
     expect(r.gastos).toBe(502400);
     expect(r.atletas).toBe(64);
     expect(r.valorPorAtleta).toBe(7850);
-    expect(f.patrocinios.map((p) => p.cota)).toEqual(['Master (frente)', 'Mangas', 'Costas (1)', 'Costas (2)', 'Shorts']);
+    expect(f.patrocinios.map((p) => p.cota)).toEqual([
+      'Master (frente)',
+      'Costas (1)',
+      'Ombro esquerdo',
+      'Ombro direito',
+      'Manga esquerda',
+      'Manga direita',
+      'Costas (2)',
+      'Calção',
+      'Premiação',
+    ]);
+    expect(f.patrocinios.reduce((t, p) => t + p.valor, 0)).toBe(305000);
   });
 
   it('patrocínio fechado e entradas abatem do que os atletas pagam; negociando não', () => {
@@ -60,6 +71,14 @@ describe('financeiro', () => {
     f.patrocinios[0] = { ...f.patrocinios[0], patrocinador: 'Padaria', status: 'recebido' };
     f.patrocinios[2] = { ...f.patrocinios[2], patrocinador: 'Bar', status: 'confirmado', exibir: false };
     expect(patrocinadoresPublicos(f).map((p) => p.patrocinador)).toEqual(['Padaria', 'Oficina']);
+  });
+
+  it('quem fechou duas cotas aparece uma vez, na de mais destaque', () => {
+    const f = financeiroPadrao(id);
+    const premiacao = f.patrocinios.findIndex((p) => p.cota === 'Premiação');
+    f.patrocinios[premiacao] = { ...f.patrocinios[premiacao], patrocinador: 'EM Empreendimentos', status: 'confirmado' };
+    f.patrocinios[0] = { ...f.patrocinios[0], patrocinador: 'em empreendimentos ', status: 'confirmado' };
+    expect(patrocinadoresPublicos(f).map((p) => p.cota)).toEqual(['Master (frente)']);
   });
 
   it('lê valores em reais em vários formatos', () => {
