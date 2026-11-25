@@ -8,6 +8,7 @@ import { patrocinadoresPublicos, type Patrocinio } from '@/lib/domain/campeonato
 import { cookies } from 'next/headers';
 import type { Campeonato } from '@/lib/domain/campeonato/tipos';
 import { carregarCampeonato, escolherAtual, listarCampeonatos, type ResumoCampeonato } from '@/lib/repo/campeonato-repo';
+import { ordenarEdicoes } from './edicoes';
 
 export const COOKIE_CAMPEONATO = 'cj_campeonato';
 
@@ -33,8 +34,9 @@ export async function idDoCampeonatoDoMesario(papel: 'admin' | 'mesario'): Promi
 }
 
 export async function edicoesPublicas(): Promise<ResumoCampeonato[]> {
-  return (await listarCampeonatos()).filter((c) => c.status !== 'rascunho');
+  return ordenarEdicoes((await listarCampeonatos()).filter((c) => c.status !== 'rascunho'));
 }
+
 
 export interface CampeonatoPublico {
   c: Campeonato;

@@ -89,6 +89,18 @@ describe('cotas de estrelas', () => {
     const jogadores = [...linhaCompleta(2), jogador('g1', 6, 'GOL'), jogador('g2', 1, 'GOL')];
     expect(calcularCotas(jogadores, 2).fechou).toBe(true);
   });
+
+  it('quem está sem estrelas conta no tamanho dos elencos (regressão: 49 de 56 mostrava 6 por time)', () => {
+    // 8 times, 49 de linha com estrelas e 7 sem: as vagas têm de sair 7 por time, com 4★ = 16.
+    const comEstrelas = JOGADORES_EXEMPLO.filter((j) => j.posicao !== 'GOL').slice(0, 49);
+    const c = calcularCotas(comEstrelas, 8, 7);
+    expect(c.vagasPorTime).toBe(7);
+    expect(c.jogadoresDeLinha).toBe(56);
+    expect(c.niveis.find((n) => n.nivel === 4)?.necessario).toBe(16);
+    expect(c.pendencias[0]).toBe('7 jogadores de linha sem estrelas.');
+    expect(c.pendencias.some((p) => p.includes('não se dividem'))).toBe(false);
+    expect(c.fechou).toBe(false);
+  });
 });
 
 describe('sortear — invariantes (composição idêntica)', () => {

@@ -45,8 +45,10 @@ export default async function Inscricoes({
   const { equipes } = await carregarCampeonato(campeonatoId);
   const cadastro = interpretarInscricoes(paraLinhas(inscricoes), equipes.length ? equipes.map((e) => e.nome) : undefined);
   // Cotas de estrelas (composição idêntica, 19/11/2026): o detalhe por nível só aparece aqui.
-  const cotas = calcularCotas(cadastro.jogadores, cadastro.times.length);
   const confirmados = inscricoes.filter((i) => i.status === 'confirmado');
+  // Quem ainda está sem estrelas conta para o tamanho dos elencos (7 por time com 56 de linha).
+  const semEstrelas = confirmados.filter((i) => i.posicao !== 'GOL' && !i.estrelas).length;
+  const cotas = calcularCotas(cadastro.jogadores, cadastro.times.length, semEstrelas);
   const goleiros = confirmados.filter((i) => i.posicao === 'GOL').length;
   const linha = confirmados.filter((i) => i.posicao !== 'GOL').length;
 

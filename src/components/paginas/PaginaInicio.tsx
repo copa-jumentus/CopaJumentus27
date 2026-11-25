@@ -81,12 +81,15 @@ export function PaginaInicio({ c, base, edicoes, patrocinadores }: CampeonatoPub
             )}
             <div>
               <p className="hud-label mb-2">{c.subtitulo ?? (c.edicao ? `Edição ${c.edicao}` : 'Copa Jumentus')}</p>
-              <h2 className="titulo-hero t-xl text-4xl sm:text-5xl">{c.nome}</h2>
+              <h2 className="titulo-hero t-xl text-4xl sm:text-5xl">{titulo}</h2>
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Info rotulo="Período" valor={c.inicio ? `${formatarData(c.inicio)}${c.fim ? ` – ${formatarData(c.fim)}` : ''}` : 'A definir'} />
-            <Info rotulo="Local" valor={c.local ?? 'A definir'} />
+            {/* Edição encerrada sem data ou local (as do Copa Fácil): não mostra "A definir". */}
+            {(c.inicio || c.status !== 'encerrado') && (
+              <Info rotulo="Período" valor={c.inicio ? `${formatarData(c.inicio)}${c.fim ? ` – ${formatarData(c.fim)}` : ''}` : 'A definir'} />
+            )}
+            {(c.local || c.status !== 'encerrado') && <Info rotulo="Local" valor={c.local ?? 'A definir'} />}
             <Info rotulo="Status" valor={status} />
           </div>
         </div>
