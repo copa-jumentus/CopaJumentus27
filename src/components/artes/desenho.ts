@@ -26,18 +26,197 @@ const GRADE: Record<Formato, { cab: number; conteudo: number; fimConteudo: numbe
 };
 const M = 80;
 
+// Artes no clima Vice City / pôr do sol (decisão do operador em 25/11/2026):
+// paleta violeta → roxo → magenta → coral → laranja → amarelo; o "dourado" das artes é o amarelo quente.
 const COR = {
-  fundo: '#06122A',
-  modulo: '#0B1F3F',
-  moduloLider: '#10274D',
-  linha: '#1B3560',
-  texto: '#F4F2EC',
-  concreto: '#C9CCD1',
-  dourado: '#D4A12A',
-  douradoClaro: '#F2CB57',
-  vermelho: '#E4002B',
+  fundo: '#1E0838',
+  modulo: 'rgba(30,8,56,0.94)',
+  moduloLider: 'rgba(70,22,110,0.9)',
+  linha: '#7B208F',
+  texto: '#FFF6F0',
+  concreto: '#F0D9EC',
+  dourado: '#FFB458',
+  douradoClaro: '#FFB458',
+  vermelho: '#FF3D6E',
   noite: '#1E0838',
 };
+const SOL = { violeta: '#3B146B', roxo: '#7B208F', magenta: '#C9349B', rosa: '#F36A78', coral: '#F87572', laranja: '#FF9B55', amarelo: '#FFB458' };
+const SILHUETA = '#2A0A45';
+
+/** Gerador determinístico (a arte sai igual toda vez). */
+function semente(n: number) {
+  let x = n;
+  return () => {
+    x = (x * 16807) % 2147483647;
+    return (x - 1) / 2147483646;
+  };
+}
+
+function ponto(p0: [number, number], c: [number, number], p1: [number, number], t: number): [number, number] {
+  const u = 1 - t;
+  return [u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]];
+}
+
+/** Folha de palmeira: nervura curva caindo, com folíolos preenchidos dos dois lados. */
+function folha(ctx: CanvasRenderingContext2D, origem: [number, number], ang: number, comp: number, sorte: () => number) {
+  const ponta: [number, number] = [origem[0] + Math.cos(ang) * comp, origem[1] + Math.sin(ang) * comp * 0.5 + comp * 0.62];
+  const ctrl: [number, number] = [origem[0] + Math.cos(ang) * comp * 0.7, origem[1] + Math.sin(ang) * comp * 0.8 - comp * 0.12];
+  ctx.lineWidth = Math.max(2, comp * 0.022);
+  ctx.beginPath();
+  for (let i = 0; i <= 24; i++) {
+    const [x, y] = ponto(origem, ctrl, ponta, i / 24);
+    if (i) ctx.lineTo(x, y);
+    else ctx.moveTo(x, y);
+  }
+  ctx.stroke();
+  const n = 34;
+  for (let i = 1; i < n; i++) {
+    const t = i / n;
+    const [x, y] = ponto(origem, ctrl, ponta, t);
+    const [x2, y2] = ponto(origem, ctrl, ponta, Math.min(1, t + 0.01));
+    const a = Math.atan2(y2 - y, x2 - x);
+    const l = comp * 0.34 * Math.sin(Math.PI * Math.min(1, t * 1.15)) * (0.75 + sorte() * 0.5);
+    const larg = comp * 0.018;
+    for (const lado of [-1, 1]) {
+      const af = a + lado * (0.75 + sorte() * 0.25);
+      const fx = x + Math.cos(af) * l;
+      const fy = y + Math.sin(af) * l + l * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(a) * larg, y - Math.sin(a) * larg);
+      ctx.quadraticCurveTo((x + fx) / 2 + lado * 2, (y + fy) / 2 - l * 0.12, fx, fy);
+      ctx.lineTo(x + Math.cos(a) * larg, y + Math.sin(a) * larg);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+/** Copa de palmeira (sem tronco ou no alto de um tronco). */
+function copa(ctx: CanvasRenderingContext2D, centro: [number, number], raio: number, cor: string, sorte: () => number, angulos?: [number, number]) {
+  ctx.save();
+  ctx.fillStyle = cor;
+  ctx.strokeStyle = cor;
+  ctx.lineCap = 'round';
+  const [a0, a1] = angulos ?? [-Math.PI * 1.08, Math.PI * 0.08];
+  const n = 12;
+  for (let k = 0; k < n; k++) {
+    const a = a0 + ((a1 - a0) * k) / (n - 1) + (sorte() - 0.5) * 0.2;
+    folha(ctx, centro, a, raio * (0.7 + sorte() * 0.4), sorte);
+  }
+  ctx.beginPath();
+  ctx.arc(centro[0], centro[1], raio * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Palmeira inteira: tronco curvo e fino, com anéis, e a copa no alto. */
+function palmeira(ctx: CanvasRenderingContext2D, base: [number, number], topo: [number, number], raio: number, cor: string, sorte: () => number) {
+  ctx.save();
+  ctx.fillStyle = cor;
+  const curva: [number, number] = [base[0] + (topo[0] - base[0]) * 0.15, (base[1] + topo[1]) / 2];
+  const esq: [number, number][] = [];
+  const dir: [number, number][] = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40;
+    const [x, y] = ponto(base, curva, topo, t);
+    const w = raio * (0.05 - 0.025 * t);
+    esq.push([x - w, y]);
+    dir.push([x + w, y]);
+  }
+  ctx.beginPath();
+  esq.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  [...dir].reverse().forEach(([x, y]) => ctx.lineTo(x, y));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  copa(ctx, topo, raio, cor, sorte);
+}
+
+/** Céu de pôr do sol, sol no horizonte, skyline, água e palmeiras. */
+function cenaViceCity(ctx: CanvasRenderingContext2D, f: Formato) {
+  const H = ALTURA[f];
+  const story = f === 'story';
+  const sorte = semente(story ? 11 : 7);
+  const horizonte = story ? 1720 : H;
+  const ceu = ctx.createLinearGradient(0, 0, 0, horizonte);
+  ceu.addColorStop(0, '#24094A');
+  ceu.addColorStop(0.2, SOL.violeta);
+  ceu.addColorStop(0.45, SOL.roxo);
+  ceu.addColorStop(0.66, SOL.magenta);
+  ceu.addColorStop(0.82, SOL.rosa);
+  ceu.addColorStop(0.93, SOL.laranja);
+  ceu.addColorStop(1, SOL.amarelo);
+  ctx.fillStyle = ceu;
+  ctx.fillRect(0, 0, L, horizonte);
+  // Faixas de nuvem.
+  ctx.save();
+  for (let i = 0; i < 12; i++) {
+    const y = horizonte * (0.5 + sorte() * 0.45);
+    ctx.globalAlpha = 0.12 + sorte() * 0.14;
+    ctx.fillStyle = i % 2 ? SOL.coral : SOL.magenta;
+    ctx.beginPath();
+    ctx.ellipse(sorte() * L, y, 180 + sorte() * 300, 5 + sorte() * 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  if (story) {
+    // Sol, skyline e água só no stories, abaixo da área segura.
+    const rSol = 170;
+    const cx = L * 0.36;
+    const brilho = ctx.createRadialGradient(cx, horizonte, rSol * 0.5, cx, horizonte, rSol * 3);
+    brilho.addColorStop(0, 'rgba(255,224,138,0.6)');
+    brilho.addColorStop(1, 'rgba(255,180,88,0)');
+    ctx.fillStyle = brilho;
+    ctx.fillRect(0, horizonte - rSol * 3, L, rSol * 3);
+    const sol = ctx.createLinearGradient(0, horizonte - rSol, 0, horizonte);
+    sol.addColorStop(0, '#FFE6A0');
+    sol.addColorStop(1, SOL.laranja);
+    ctx.fillStyle = sol;
+    ctx.beginPath();
+    ctx.arc(cx, horizonte, rSol, Math.PI, 0);
+    ctx.fill();
+    let x = L * 0.52;
+    while (x < L + 20) {
+      const w = 22 + sorte() * 40;
+      const h = 30 + sorte() * 110;
+      ctx.fillStyle = 'rgba(42,10,69,0.92)';
+      ctx.fillRect(x, horizonte - h, w, h);
+      ctx.fillStyle = 'rgba(255,155,85,0.8)';
+      for (let jy = horizonte - h + 8; jy < horizonte - 6; jy += 12) for (let jx = x + 4; jx < x + w - 5; jx += 9) if (sorte() < 0.18) ctx.fillRect(jx, jy, 3, 5);
+      x += w + 2 + sorte() * 6;
+    }
+    for (let x2 = -10; x2 < L * 0.22; ) {
+      const w = 18 + sorte() * 30;
+      const h = 14 + sorte() * 50;
+      ctx.fillStyle = 'rgba(42,10,69,0.85)';
+      ctx.fillRect(x2, horizonte - h, w, h);
+      x2 += w + 3;
+    }
+    const agua = ctx.createLinearGradient(0, horizonte, 0, H);
+    agua.addColorStop(0, '#5A1A78');
+    agua.addColorStop(0.4, '#2E0C50');
+    agua.addColorStop(1, '#14052A');
+    ctx.fillStyle = agua;
+    ctx.fillRect(0, horizonte, L, H - horizonte);
+    ctx.save();
+    for (let i = 0; i < 20; i++) {
+      const y = horizonte + 5 + i * 10;
+      const w = rSol * (1.7 - i * 0.07) * (0.6 + sorte() * 0.5);
+      ctx.globalAlpha = Math.max(0, 0.6 - i * 0.03);
+      ctx.fillStyle = i % 3 ? SOL.laranja : SOL.rosa;
+      ctx.fillRect(cx - w / 2 + (sorte() - 0.5) * 24, y, w, 3);
+    }
+    ctx.restore();
+    palmeira(ctx, [L - 40, horizonte + 30], [L - 70, 1400], 240, SILHUETA, sorte);
+    palmeira(ctx, [70, horizonte + 30], [30, 1650], 150, 'rgba(42,10,69,0.9)', sorte);
+  } else {
+    palmeira(ctx, [L - 40, H + 20], [L - 110, 860], 250, 'rgba(42,10,69,0.88)', sorte);
+    palmeira(ctx, [30, H + 20], [70, 980], 190, 'rgba(42,10,69,0.8)', sorte);
+  }
+  // Copas entrando pelos cantos de cima, como nas artes de Vice City.
+  copa(ctx, [L + 40, story ? 120 : -40], story ? 420 : 380, SILHUETA, sorte, [Math.PI * 0.35, Math.PI * 1.05]);
+  copa(ctx, [-60, story ? 980 : 640], 300, 'rgba(42,10,69,0.85)', sorte, [-Math.PI * 0.45, Math.PI * 0.45]);
+}
 
 interface Fontes {
   titulo: string;
@@ -76,9 +255,9 @@ function carregarImagem(src: string | undefined): Promise<HTMLImageElement | nul
 
 function gradienteDourado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): CanvasGradient {
   const g = ctx.createLinearGradient(x, y + h, x + w, y);
-  g.addColorStop(0, '#9C6F14');
-  g.addColorStop(0.55, COR.douradoClaro);
-  g.addColorStop(1, COR.dourado);
+  g.addColorStop(0, SOL.rosa);
+  g.addColorStop(0.5, SOL.laranja);
+  g.addColorStop(1, SOL.amarelo);
   return g;
 }
 
@@ -160,42 +339,16 @@ function padraoRuido(): HTMLCanvasElement {
 // ---------- moldura comum ----------
 
 async function moldura(ctx: CanvasRenderingContext2D, f: Formato, fontes: Fontes, rotulo: string, sub: string, assinatura: string) {
-  const H = ALTURA[f];
   const g = GRADE[f];
-  ctx.fillStyle = COR.fundo;
-  ctx.fillRect(0, 0, L, H);
+  cenaViceCity(ctx, f);
 
-  // Faixa de céu Vice City no topo (peça de jogo: só a faixa).
-  const ceu = ctx.createLinearGradient(0, 0, 0, g.conteudo + 80);
-  ceu.addColorStop(0, 'rgba(30,8,56,0.95)');
-  ceu.addColorStop(0.4, 'rgba(59,20,107,0.75)');
-  ceu.addColorStop(0.72, 'rgba(122,46,110,0.45)');
-  ceu.addColorStop(1, 'rgba(6,18,42,0)');
-  ctx.fillStyle = ceu;
-  ctx.fillRect(0, 0, L, g.conteudo + 80);
-
-  // Malha de camisa (~8%).
-  ctx.save();
-  ctx.globalAlpha = 0.07;
-  ctx.strokeStyle = COR.texto;
-  ctx.lineWidth = 1;
-  for (let d = -H; d < L + H; d += 7) {
-    ctx.beginPath();
-    ctx.moveTo(d, 0);
-    ctx.lineTo(d + H, H);
-    ctx.moveTo(d, H);
-    ctx.lineTo(d + H, 0);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Diagonais no canto (marinho, vermelho, dourado), acima do cabeçalho.
+  // Diagonais no canto (magenta, rosa, amarelo), acima do cabeçalho.
   const topo = f === 'feed' ? 0 : 150;
   ctx.save();
   ctx.beginPath();
   ctx.rect(L - 300, topo, 300, 64);
   ctx.clip();
-  [COR.linha, COR.vermelho, COR.dourado].forEach((cor, i) => {
+  [SOL.magenta, SOL.rosa, SOL.amarelo].forEach((cor, i) => {
     ctx.save();
     ctx.translate(L - 140 + i * 36, topo + 32);
     ctx.rotate(-Math.PI / 4);
@@ -215,10 +368,11 @@ async function moldura(ctx: CanvasRenderingContext2D, f: Formato, fontes: Fontes
   texto(ctx, sub.toUpperCase(), L - M, g.cab + 88, `600 22px ${fontes.rotulo}`, COR.concreto, { alinhar: 'right', tracking: 2.2 });
 
   // Rodapé: filete dourado de 4 px e @C.R.JUMENTUS.
-  ctx.fillStyle = gradienteDourado(ctx, M, g.rodape, L - 2 * M, 4);
+  // Rodapé sobre o céu quente: texto em violeta profundo.
+  ctx.fillStyle = SILHUETA;
   ctx.fillRect(M, g.rodape, L - 2 * M, 4);
-  texto(ctx, '@C.R.JUMENTUS', M, g.rodape + 46, `700 26px ${fontes.rotulo}`, COR.concreto, { tracking: 3.6 });
-  texto(ctx, assinatura.toUpperCase(), L - M, g.rodape + 46, `700 26px ${fontes.rotulo}`, COR.concreto, { alinhar: 'right', tracking: 3.6 });
+  texto(ctx, '@C.R.JUMENTUS', M, g.rodape + 46, `700 26px ${fontes.rotulo}`, SILHUETA, { tracking: 3.6 });
+  texto(ctx, assinatura.toUpperCase(), L - M, g.rodape + 46, `700 26px ${fontes.rotulo}`, SILHUETA, { alinhar: 'right', tracking: 3.6 });
 }
 
 function grao(ctx: CanvasRenderingContext2D, f: Formato) {
