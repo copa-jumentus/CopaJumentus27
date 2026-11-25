@@ -36,8 +36,11 @@ function Cartao({ p, destaque = false }: { p: Patrocinio; destaque?: boolean }) 
   const conteudo = (
     <>
       {p.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={p.logo} alt={p.patrocinador} className={`${destaque ? 'max-h-20' : 'max-h-12'} w-auto max-w-full object-contain`} />
+        // Placa clara: a maioria dos logos é feita para fundo branco e some no marinho.
+        <span className={`flex max-w-full items-center justify-center bg-[#F4F2EC] ${destaque ? 'px-10 py-5' : 'w-full px-3 py-2'}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.logo} alt={p.patrocinador} className={`${destaque ? 'max-h-24' : 'max-h-12'} w-auto max-w-full object-contain`} />
+        </span>
       ) : (
         <span className={`titulo-hero ${destaque ? 't-xl text-4xl' : 't-sm text-xl'} text-text-1`}>{p.patrocinador}</span>
       )}

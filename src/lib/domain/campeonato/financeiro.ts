@@ -4,7 +4,22 @@
 // Valores sempre em centavos (inteiros), para não errar arredondamento.
 
 export const CATEGORIAS_GASTO = ['Campo', 'Arbitragem', 'Premiação', 'Fotografia', 'Água e descartáveis', 'Uniformes', 'Outros'] as const;
-export const COTAS_PATROCINIO = ['Master (frente)', 'Mangas', 'Costas (1)', 'Costas (2)', 'Shorts', 'Apoio'] as const;
+/**
+ * Cotas da edição 2027 (tabela aprovada pelo operador em 25/11/2026), na ordem de destaque,
+ * com o valor sugerido em centavos. Mangas, Shorts e Apoio ficam no fim para dados antigos.
+ */
+export const COTAS_PADRAO = [
+  ['Master (frente)', 60000],
+  ['Costas (1)', 35000],
+  ['Ombro esquerdo', 30000],
+  ['Ombro direito', 30000],
+  ['Manga esquerda', 30000],
+  ['Manga direita', 30000],
+  ['Costas (2)', 30000],
+  ['Calção', 30000],
+  ['Premiação', 30000],
+] as const;
+export const COTAS_PATROCINIO = [...COTAS_PADRAO.map(([cota]) => cota), 'Mangas', 'Shorts', 'Apoio'] as const;
 export const CATEGORIAS_ENTRADA = ['Doação', 'Rifa', 'Venda', 'Outros'] as const;
 
 export type StatusGasto = 'previsto' | 'pago';
@@ -120,9 +135,19 @@ export function patrocinadoresPublicos(f: Financeiro | undefined): Patrocinio[] 
     const i = COTAS_PATROCINIO.findIndex((c) => c === cota);
     return i < 0 ? COTAS_PATROCINIO.length : i;
   };
-  return f.patrocinios
-    .filter((p) => p.exibir && patrocinioFechado(p) && p.patrocinador.trim() && !/^a definir$/i.test(p.patrocinador.trim()))
-    .sort((a, b) => ordem(a.cota) - ordem(b.cota));
+  const vistos = new Set<string>();
+  return (
+    f.patrocinios
+      .filter((p) => p.exibir && patrocinioFechado(p) && p.patrocinador.trim() && !/^a definir$/i.test(p.patrocinador.trim()))
+      .sort((a, b) => ordem(a.cota) - ordem(b.cota))
+      // Quem fechou mais de uma cota aparece uma vez só, na cota de mais destaque.
+      .filter((p) => {
+        const chave = p.patrocinador.normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase();
+        if (vistos.has(chave)) return false;
+        vistos.add(chave);
+        return true;
+      })
+  );
 }
 
 /**
@@ -170,11 +195,11 @@ export function financeiroPadrao(novoId: () => string, atletas = 64): Financeiro
       gasto('Água e descartáveis', 'Água e descartáveis'),
       gasto('Uniformes Camizzeria', 'Uniformes', atletas, 7850),
     ],
-    patrocinios: COTAS_PATROCINIO.slice(0, 5).map((cota) => ({
+    patrocinios: COTAS_PADRAO.map(([cota, valor]) => ({
       id: novoId(),
       patrocinador: 'A definir',
       cota,
-      valor: 0,
+      valor,
       status: 'negociando',
       exibir: true,
     })),

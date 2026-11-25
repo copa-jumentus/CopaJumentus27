@@ -9,6 +9,7 @@ Servidas pelo Next a partir de `/imagens/...`.
 | `escudos/` | Escudos dos 8 times, fundo transparente, 512 px no lado maior (`Time.escudo`, fase 2) | Nome do arquivo = slug do time, ex.: `inter-miami.webp`, `lafc.webp`. |
 | `escudos/selecoes/` | Escudos das seleções da edição Copa do Mundo (2026), enviados pelo operador; fundo transparente, 256 px no lado maior | `alemanha`, `argentina`, `brasil`, `espanha`, `franca`, `portugal` (`.webp`). |
 | `escudos/clubes/` | Escudos dos clubes italianos da edição 2025, enviados pelo operador; fundo transparente, 256 px; Juventus na versão negativa (branca) | `fiorentina`, `inter`, `juventus`, `milan`, `napoli`, `roma` (`.webp`). |
+| `patrocinadores/` | Logos dos patrocinadores, enviados pelo operador; WebP com fundo transparente | Nome do arquivo = slug do patrocinador, ex.: `em-empreendimentos.webp`. No site o logo fica sobre uma placa clara (CLAUDE.md §8.8). |
 | `artes/2027/` | Artes publicadas no Instagram (@c.r.jumentus), numeradas na ordem do feed (`01-teaser-feed.webp`) | WebP 1080×1350 (feed) ou 1080×1920 (stories), até ~500 KB. |
 
 O banner da home continua em `public/banner-copa-jumentus.webp` (ver CLAUDE.md §5).
