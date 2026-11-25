@@ -41,8 +41,8 @@ export default async function Financeiro({ searchParams }: { searchParams: Promi
         <Secao titulo="Começar">
           <p className="mb-4 text-sm text-text-2">
             Gastos, patrocínios e outras entradas da edição, com o valor que cada atleta precisa pagar. Começa com o modelo da planilha
-            Financeiro: aluguel do campo, arbitragem, troféus, fotógrafo, água, uniformes da Camizzeria (64 × R$ 78,50) e as cinco cotas de
-            patrocínio da camisa. Tudo pode ser editado, removido ou acrescentado depois.
+            Financeiro: aluguel do campo, arbitragem, troféus, fotógrafo, água, uniformes da Camizzeria (64 × R$ 78,50) e as nove cotas de
+            patrocínio de 2027. Tudo pode ser editado, removido ou acrescentado depois.
           </p>
           <form action={iniciarFinanceiroAcao}>
             <input type="hidden" name="volta" value={VOLTA} />
