@@ -37,24 +37,33 @@ export function niveisDeEstrela(): Estrelas[] {
   return niveis;
 }
 
-export function calcularCotas(jogadores: readonly Jogador[], times: number): Cotas {
+/**
+ * `semEstrelas`: jogadores de linha confirmados que ainda estão sem estrelas (ficam fora de
+ * `jogadores`). Eles contam para o tamanho dos elencos, então as vagas por time já saem
+ * certas enquanto o operador termina de dar as estrelas.
+ */
+export function calcularCotas(jogadores: readonly Jogador[], times: number, semEstrelas = 0): Cotas {
   const linha = poteDeLinha(jogadores);
+  const totalDeLinha = linha.length + semEstrelas;
   const niveis = niveisDeEstrela();
   const pendencias: string[] = [];
 
   if (times < 1) {
-    return { times, jogadoresDeLinha: linha.length, vagasPorTime: 0, niveis: [], pendencias: ['Cadastre as equipes do campeonato.'], fechou: false };
+    return { times, jogadoresDeLinha: totalDeLinha, vagasPorTime: 0, niveis: [], pendencias: ['Cadastre as equipes do campeonato.'], fechou: false };
   }
 
-  const vagasPorTime = Math.max(niveis.length, Math.round(linha.length / times));
+  const vagasPorTime = Math.max(niveis.length, Math.round(totalDeLinha / times));
   const extra = vagasPorTime - niveis.length;
 
-  if (linha.length % times !== 0) {
+  if (semEstrelas > 0) {
+    pendencias.push(`${semEstrelas} jogador${semEstrelas > 1 ? 'es' : ''} de linha sem estrelas.`);
+  }
+  if (totalDeLinha % times !== 0) {
     pendencias.push(
-      `${linha.length} jogadores de linha não se dividem igualmente entre ${times} times (${times * vagasPorTime} fecham ${vagasPorTime} por time).`,
+      `${totalDeLinha} jogadores de linha não se dividem igualmente entre ${times} times (${times * vagasPorTime} fecham ${vagasPorTime} por time).`,
     );
   }
-  if (Math.round(linha.length / times) < niveis.length) {
+  if (Math.round(totalDeLinha / times) < niveis.length) {
     pendencias.push(`Cada time precisa de pelo menos ${niveis.length} jogadores de linha, um de cada nível.`);
   }
 
@@ -69,7 +78,7 @@ export function calcularCotas(jogadores: readonly Jogador[], times: number): Cot
     return { nivel, porTime, necessario, tem };
   });
 
-  return { times, jogadoresDeLinha: linha.length, vagasPorTime, niveis: cotas, pendencias, fechou: pendencias.length === 0 };
+  return { times, jogadoresDeLinha: totalDeLinha, vagasPorTime, niveis: cotas, pendencias, fechou: pendencias.length === 0 };
 }
 
 /** Aviso da tela de sorteio: não cita níveis nem quem tem quantas estrelas. */
