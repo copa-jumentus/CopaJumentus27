@@ -6,6 +6,8 @@ import { andamento } from '@/lib/domain/campeonato/andamento';
 import { calcularClassificacao, empatesPendentes } from '@/lib/domain/campeonato/classificacao';
 import { ordenarPartidas } from '@/lib/domain/campeonato/suspensoes';
 import { campeonatoDoAdmin } from '@/lib/campeonato/selecao';
+import { resumirFinanceiro } from '@/lib/domain/campeonato/financeiro';
+import { listarInscricoes } from '@/lib/repo/inscricoes-repo';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Admin — Copa Jumentus' };
@@ -15,6 +17,11 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
   const c = await campeonatoDoAdmin();
   const { equipe } = indices(c);
   const pagos = c.jogadores.filter((j) => j.pago).length;
+  // Antes de oficializar o sorteio ainda não há jogadores nas equipes: o que existe são as inscrições.
+  const inscricoes = await listarInscricoes(c.id);
+  const confirmados = inscricoes.filter((i) => i.status === 'confirmado').length;
+  const naEspera = inscricoes.length - confirmados;
+  const fin = c.financeiro ? resumirFinanceiro(c.financeiro, c.jogadores.length, Math.round(pagos * c.valorInscricao * 100)) : null;
   const a = andamento(c.partidas);
   // O jogo da vez: o ao vivo ou, sem ele, o próximo. É para ele que o admin vai na beira do campo.
   const daVez = a.aoVivo[0] ?? a.proxima;
@@ -71,15 +78,24 @@ export default async function Painel({ searchParams }: { searchParams: Promise<{
         <div className="hud-card relative px-3 py-4">
           <Numero valor={`${a.encerrados}/${a.total}`} rotulo="Jogos encerrados" />
         </div>
-        <div className="hud-card relative px-3 py-4">
-          <Numero valor={`${pagos}/${c.jogadores.length}`} rotulo="Inscrições pagas" />
-        </div>
-        <div className="hud-card relative px-3 py-4">
-          <Numero valor={formatarReais(pagos * c.valorInscricao)} rotulo="Arrecadado" />
-        </div>
-        <div className="hud-card relative px-3 py-4">
-          <Numero valor={`${c.equipes.length} · ${c.jogadores.length}`} rotulo="Equipes · jogadores" />
-        </div>
+        {c.jogadores.length > 0 ? (
+          <Link href="/admin/pagamentos" className="hud-card relative px-3 py-4 transition-colors hover:bg-[var(--surface2)]">
+            <Numero valor={`${pagos}/${c.jogadores.length}`} rotulo="Inscrições pagas" />
+          </Link>
+        ) : (
+          <Link href="/admin/inscricoes" className="hud-card relative px-3 py-4 transition-colors hover:bg-[var(--surface2)]">
+            <Numero valor={String(confirmados)} rotulo={naEspera > 0 ? `Inscritos · ${naEspera} na espera` : 'Inscritos confirmados'} />
+          </Link>
+        )}
+        <Link href="/admin/financeiro" className="hud-card relative px-3 py-4 transition-colors hover:bg-[var(--surface2)]">
+          <Numero valor={formatarReais((fin?.patrocinioFechado ?? 0) / 100)} rotulo="Patrocínio fechado" />
+        </Link>
+        <Link href="/admin/financeiro" className="hud-card relative px-3 py-4 transition-colors hover:bg-[var(--surface2)]">
+          <Numero
+            valor={fin?.valorPorAtleta != null ? formatarReais(fin.valorPorAtleta / 100) : formatarReais(pagos * c.valorInscricao)}
+            rotulo={fin?.valorPorAtleta != null ? 'Valor por atleta' : 'Arrecadado'}
+          />
+        </Link>
       </div>
 
       <Secao
