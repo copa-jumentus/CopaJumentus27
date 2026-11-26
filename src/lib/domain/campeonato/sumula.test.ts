@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { aplicarChaveamento } from './chaveamento';
 import { aplicarModelo } from './modelo';
 import { ErroDoJogo } from './relogio';
-import { lancarEvento } from './sumula';
+import { apagarEvento, lancarEvento } from './sumula';
+import { calcularSuspensoes } from './suspensoes';
 import { CRITERIOS_PADRAO, type Campeonato } from './tipos';
 
 const IDS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -49,15 +50,42 @@ describe('cartões na súmula', () => {
     if (doMesmoTime) cartao(c, p2.id, j, 'amarelo');
   });
 
-  it('no máximo dois amarelos por jogador no mesmo jogo', () => {
+  it('segundo amarelo no mesmo jogo vira vermelho; reenviar não duplica', () => {
     const c = campeonato();
     const p = c.partidas.find((x) => x.numero === 1)!;
     const j = `${p.visitanteId}1`;
-    cartao(c, p.id, j, 'amarelo');
-    cartao(c, p.id, j, 'amarelo');
-    expect(() => cartao(c, p.id, j, 'amarelo')).toThrow(/dois amarelos/);
-    // O vermelho depois do segundo amarelo continua entrando.
-    cartao(c, p.id, j, 'vermelho');
+    lancarEvento(c, p.id, { id: 'am1', tipo: 'amarelo', jogadorId: j, minuto: 3 });
+    const msg = lancarEvento(c, p.id, { id: 'am2', tipo: 'amarelo', jogadorId: j, minuto: 7 });
+    expect(msg).toMatch(/expulso/);
+    expect(p.eventos.filter((e) => e.jogadorId === j).map((e) => [e.tipo, e.minuto])).toEqual([
+      ['amarelo', 3],
+      ['amarelo', 7],
+      ['vermelho', 7],
+    ]);
+    lancarEvento(c, p.id, { id: 'am2', tipo: 'amarelo', jogadorId: j, minuto: 7 });
+    expect(p.eventos.filter((e) => e.jogadorId === j)).toHaveLength(3);
+    expect(() => cartao(c, p.id, j, 'amarelo')).toThrow(/já levou vermelho/);
+  });
+
+  it('apagar um dos dois amarelos tira o vermelho automático junto', () => {
+    const c = campeonato();
+    const p = c.partidas.find((x) => x.numero === 1)!;
+    const j = `${p.visitanteId}1`;
+    lancarEvento(c, p.id, { id: 'a1', tipo: 'amarelo', jogadorId: j });
+    lancarEvento(c, p.id, { id: 'a2', tipo: 'amarelo', jogadorId: j });
+    apagarEvento(c, p.id, 'a1');
+    expect(p.eventos.filter((e) => e.jogadorId === j).map((e) => e.tipo)).toEqual(['amarelo']);
+  });
+
+  it('expulsão por dois amarelos suspende o jogo seguinte e não soma nos 3 acumulados', () => {
+    const c = campeonato();
+    const p = c.partidas.find((x) => x.numero === 1)!;
+    const j = `${p.visitanteId}1`;
+    lancarEvento(c, p.id, { id: 'b1', tipo: 'amarelo', jogadorId: j });
+    lancarEvento(c, p.id, { id: 'b2', tipo: 'amarelo', jogadorId: j });
+    p.status = 'encerrada';
+    const s = calcularSuspensoes(c.partidas, new Map(c.jogadores.map((x) => [x.id, x.equipeId])));
+    expect(s.get(j)).toMatchObject({ suspenso: true, motivo: 'vermelho', amarelos: 0 });
   });
 
   it('gol continua entrando normalmente', () => {

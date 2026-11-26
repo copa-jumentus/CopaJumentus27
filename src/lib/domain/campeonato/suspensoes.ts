@@ -1,6 +1,8 @@
 // Suspensões automáticas (CLAUDE.md §8.2):
 // - 3 cartões amarelos acumulados = suspenso no jogo seguinte da equipe (a contagem zera);
-// - cartão vermelho = suspenso no jogo seguinte da equipe.
+// - cartão vermelho = suspenso no jogo seguinte da equipe;
+// - segundo amarelo no mesmo jogo vira vermelho (sumula.ts); esses dois amarelos
+//   não entram na contagem dos 3 acumulados: a expulsão já pune (operador, 26/11/2026).
 
 import type { Partida } from './tipos';
 
@@ -72,7 +74,13 @@ export function calcularSuspensoes(
 
     // 2) Cartões desta partida geram suspensão para o jogo seguinte.
     if (partida.status === 'agendada') continue;
+    const expulsosPorAmarelos = new Set(
+      partida.eventos
+        .filter((e) => e.tipo === 'vermelho' && partida.eventos.filter((a) => a.tipo === 'amarelo' && a.jogadorId === e.jogadorId).length >= 2)
+        .map((e) => e.jogadorId),
+    );
     for (const ev of partida.eventos) {
+      if (ev.tipo === 'amarelo' && expulsosPorAmarelos.has(ev.jogadorId)) continue;
       if (ev.tipo === 'amarelo') {
         const s = obter(ev.jogadorId);
         s.amarelos += 1;

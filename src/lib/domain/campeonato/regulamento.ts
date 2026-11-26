@@ -86,6 +86,7 @@ export function montarRegulamento(c: Campeonato): SecaoRegulamento[] {
     itens: [
       '3 cartões amarelos acumulados: o jogador cumpre suspensão no jogo seguinte da sua equipe, e a contagem recomeça.',
       'Cartão vermelho: suspensão no jogo seguinte da equipe.',
+      'Dois amarelos no mesmo jogo viram vermelho: o jogador é expulso e cumpre suspensão no jogo seguinte. Esses dois amarelos não entram na contagem dos 3 acumulados.',
       'Os amarelos não zeram na passagem da fase de grupos para o mata-mata.',
     ],
   });

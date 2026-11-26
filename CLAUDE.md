@@ -302,6 +302,7 @@ Nunca introduza visual corporativo/SaaS genérico, biblioteca de componentes com
 ### 8.2 Cartões e suspensão
 - 3 amarelos acumulados: suspenso no jogo seguinte da equipe; a contagem zera. Os amarelos **não** zeram entre as fases (confirmado pelo operador em 17/11/2026).
 - Vermelho: suspenso no jogo seguinte da equipe.
+- **Segundo amarelo no mesmo jogo vira vermelho** (decisão do operador em 26/11/2026): `lancarEvento` grava o vermelho junto (id do amarelo + `-2am`, então reenviar não duplica), e apagar um dos dois amarelos tira esse vermelho. Os dois amarelos da expulsão não contam nos 3 acumulados.
 - A suspensão é cumprida quando esse jogo seguinte é encerrado. Cartões contam em jogos ao vivo e encerrados.
 - Cálculo em `lib/domain/campeonato/suspensoes.ts`, derivado das súmulas; nada é gravado. "Jogo seguinte" segue o número do jogo quando todas as partidas têm número (modelo oficial: um campo, um jogo por vez); senão, data/hora.
 
@@ -310,7 +311,7 @@ Nunca introduza visual corporativo/SaaS genérico, biblioteca de componentes com
 - Gol registrado na súmula soma no placar (gol contra soma para o adversário); remover o evento desconta.
 - Os botões + e − ajustam gols sem autor e pênaltis.
 - Eventos: `gol`, `gol_penalti` (pênalti convertido durante o jogo, soma no placar e na artilharia), `gol-contra`, `penalti_perdido`, `amarelo`, `vermelho`, `defesa` (só do goleiro registrado na partida). A disputa de pênaltis é só placar (`penaltis_mandante/visitante`).
-- **Cartões no mesmo jogo** (decisão do operador em 25/11/2026: "está dando pra colocar vários cartões pro mesmo cara"): quem já levou vermelho não recebe outro cartão, e ninguém passa de dois amarelos. A regra é `problemaDoCartao` em `sumula.ts` (testada), usada pela súmula completa e pelo Modo Mesário; o erro aparece na tela.
+- **Cartões no mesmo jogo** (decisão do operador em 25/11/2026: "está dando pra colocar vários cartões pro mesmo cara"): quem já levou vermelho não recebe outro cartão, e o segundo amarelo já vira vermelho (§8.2). A regra é `problemaDoCartao` em `sumula.ts` (testada), usada pela súmula completa e pelo Modo Mesário; o erro aparece na tela.
 - **Goleiro de cada lado** (`partida.goleiro_mandante_id`/`goleiro_visitante_id`), escolhido na súmula; sem registro, vale o único GOL do elenco, se houver um só.
 - Classificação e rankings são calculados das partidas (`lib/domain/campeonato/`); só jogos **encerrados** entram na tabela.
 - **Rankings** (com filtro por fase): artilharia, assistências, penalidades (convertidos/perdidos), goleiros (gols sofridos, média, jogos sem sofrer gol, defesas; só jogos encerrados) e cartões.

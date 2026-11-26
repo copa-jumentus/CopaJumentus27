@@ -35,10 +35,14 @@ export function ladoDoGol(p: Pick<Partida, 'mandanteId'>, tipo: TipoEvento, equi
   return ladoQueMarca(tipo, equipeId === p.mandanteId ? 'mandante' : 'visitante');
 }
 
+/** Sufixo do vermelho que o segundo amarelo gera sozinho (id = id do amarelo + sufixo). */
+export const SUFIXO_VERMELHO_AUTOMATICO = '-2am';
+
 /**
  * Cartão que não pode entrar (decisão do operador em 25/11/2026: "está dando pra
  * colocar vários cartões pro mesmo cara"): quem levou vermelho já saiu do jogo e
- * não recebe mais cartão; ninguém tem mais de dois amarelos no mesmo jogo.
+ * não recebe mais cartão; ninguém tem mais de dois amarelos no mesmo jogo (o
+ * segundo já vira vermelho, ver lancarEvento).
  * Devolve a mensagem do erro, ou null quando o cartão pode entrar.
  */
 export function problemaDoCartao(p: Pick<Partida, 'eventos'>, jogadorId: string, tipo: TipoEvento, nome: string): string | null {
@@ -88,10 +92,18 @@ export function lancarEvento(c: Campeonato, partidaId: string, d: DadosEvento): 
     assistenciaId: tipo === 'gol' && assistente && assistente.id !== jogador.id && assistente.equipeId === jogador.equipeId ? assistente.id : undefined,
     minuto: d.minuto && d.minuto > 0 ? Math.trunc(d.minuto) : undefined,
   });
+  // Segundo amarelo no mesmo jogo vira vermelho (decisão do operador em 26/11/2026).
+  // O id do vermelho deriva do id do amarelo: reenviar o mesmo lance não duplica.
+  const amarelos = p.eventos.filter((e) => e.jogadorId === jogador.id && e.tipo === 'amarelo').length;
+  const expulsoPorAmarelos = tipo === 'amarelo' && amarelos === 2;
+  if (expulsoPorAmarelos) {
+    p.eventos.push({ id: `${d.id}${SUFIXO_VERMELHO_AUTOMATICO}`, tipo: 'vermelho', jogadorId: jogador.id, equipeId: jogador.equipeId, minuto: p.eventos[p.eventos.length - 1].minuto });
+  }
   const lado = ladoDoGol(p, tipo, jogador.equipeId);
   if (lado === 'mandante') p.golsMandante += 1;
   if (lado === 'visitante') p.golsVisitante += 1;
   if (p.status === 'agendada') p.status = 'ao-vivo';
+  if (expulsoPorAmarelos) return `Segundo amarelo · ${jogador.nome}: expulso (vermelho). Placar ${p.golsMandante}:${p.golsVisitante}.`;
   return `${NOME_EVENTO[tipo]} · ${jogador.nome}. Placar ${p.golsMandante}:${p.golsVisitante}.`;
 }
 
@@ -101,6 +113,10 @@ export function apagarEvento(c: Campeonato, partidaId: string, eventoId: string)
   const ev = p.eventos.find((e) => e.id === eventoId);
   if (!ev) return;
   p.eventos = p.eventos.filter((e) => e.id !== ev.id);
+  // Apagou um amarelo: se ele ficou com menos de dois, sai também o vermelho que o segundo amarelo gerou.
+  if (ev.tipo === 'amarelo' && p.eventos.filter((e) => e.jogadorId === ev.jogadorId && e.tipo === 'amarelo').length < 2) {
+    p.eventos = p.eventos.filter((e) => !(e.jogadorId === ev.jogadorId && e.tipo === 'vermelho' && e.id.endsWith(SUFIXO_VERMELHO_AUTOMATICO)));
+  }
   const lado = ladoDoGol(p, ev.tipo, ev.equipeId);
   if (lado === 'mandante') p.golsMandante = Math.max(0, p.golsMandante - 1);
   if (lado === 'visitante') p.golsVisitante = Math.max(0, p.golsVisitante - 1);
