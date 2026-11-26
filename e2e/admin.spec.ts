@@ -143,6 +143,14 @@ test('súmula: começa o jogo 1, lança gol com assistência e encerra', async (
   await page.locator('p:has-text("Quem deu a assistência") ~ ul button.btn-mini').first().click();
   await confirmado(/1/);
 
+  // Apagar pede o segundo toque: o primeiro só arma, e o evento continua lá.
+  await page.getByRole('button', { name: 'Apagar evento' }).first().click();
+  await page.waitForTimeout(1000);
+  await expect(page.getByRole('button', { name: 'Confirmar: apagar evento' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Confirmar: apagar evento' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Apagar evento' }).first()).toBeVisible();
+
   await page.getByRole('button', { name: 'Encerrada', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Encerrada', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });

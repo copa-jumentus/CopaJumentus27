@@ -208,9 +208,13 @@ export function BotaoRemoverEvento({ acao, partidaId, eventoId, volta }: { acao:
       <input type="hidden" name="eventoId" value={eventoId} />
       <button
         ref={ref}
-        type={armado ? 'submit' : 'button'}
-        onClick={() => {
+        // Sempre type="button": trocar para "submit" no primeiro clique fazia o
+        // próprio clique enviar o formulário (o React aplica o estado antes da
+        // ação padrão do navegador), e o evento sumia sem confirmação.
+        type="button"
+        onClick={(e) => {
           if (!armado) setArmado(true);
+          else e.currentTarget.form?.requestSubmit();
         }}
         className="btn-mini"
         data-perigo
