@@ -42,6 +42,7 @@ export function CerimoniaCliente({ jogadores, times, problemas = [] }: Props) {
   const [timeRevelado, setTimeRevelado] = useState(true);
   // Roleta em andamento: no nome (passo 1) ou no time (passo 2).
   const [girando, setGirando] = useState<'nome' | 'time' | null>(null);
+  const [automatico, setAutomatico] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [copiadoLink, setCopiadoLink] = useState(false);
   const [copiadoResumo, setCopiadoResumo] = useState(false);
@@ -214,6 +215,7 @@ export function CerimoniaCliente({ jogadores, times, problemas = [] }: Props) {
 
   /** Volta um passo: fecha o time do último sorteado; se já estava fechado, tira o nome. */
   const voltarPasso = useCallback(() => {
+    setAutomatico(false);
     if (!resultado || girando) return;
     if (fase === 'fim') {
       setFase(reveladasLinha > 0 ? 'linha' : 'goleiros');
@@ -239,6 +241,20 @@ export function CerimoniaCliente({ jogadores, times, problemas = [] }: Props) {
     }
     setTimeRevelado(true);
   }, [resultado, girando, fase, emEtapa, timeRevelado, reveladasLinha, reveladasGol]);
+
+  // Modo automático (decisão do operador em 26/11/2026): os dois passos andam
+  // sozinhos, com uma pausa para a plateia ler cada nome e cada time. Pausa em
+  // qualquer momento; "Voltar 1" (botão ou seta) também pausa.
+  useEffect(() => {
+    if (!automatico || girando) return;
+    if (fase === 'fim' || fase === 'pronto') {
+      setAutomatico(false);
+      return;
+    }
+    const espera = fase === 'pre-linha' ? PAUSA_ETAPA_MS : aguardandoTime ? PAUSA_NOME_MS : PAUSA_TIME_MS;
+    const id = window.setTimeout(avancar, espera);
+    return () => window.clearTimeout(id);
+  }, [automatico, girando, fase, aguardandoTime, avancar, reveladasGol, reveladasLinha, timeRevelado]);
 
   const revelarTodos = useCallback(() => {
     if (!resultado) return;
@@ -578,6 +594,15 @@ export function CerimoniaCliente({ jogadores, times, problemas = [] }: Props) {
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 {fase !== 'fim' ? (
                   <>
+                    <button
+                      onClick={() => setAutomatico((a) => !a)}
+                      className={automatico ? 'btn-cta' : 'btn-hud'}
+                      aria-pressed={automatico}
+                      title="Os sorteios andam sozinhos, com pausa entre cada um"
+                    >
+                      <span>{automatico ? 'Pausar automático' : 'Modo automático'}</span>
+                    </button>
+
                     {(feitas > 0 || fase === 'pre-linha') && (
                       <button
                         onClick={voltarPasso}
@@ -835,6 +860,10 @@ export function CerimoniaCliente({ jogadores, times, problemas = [] }: Props) {
 }
 
 const DURACAO_ROLETA_MS = 1100;
+/** Modo automático: tempo com o nome na tela antes de sortear o time, com o time antes do próximo nome, e na troca de etapa. */
+const PAUSA_NOME_MS = 1800;
+const PAUSA_TIME_MS = 2800;
+const PAUSA_ETAPA_MS = 4000;
 
 /** Roleta curta pelos nomes que ainda estão no pote, antes de mostrar o sorteado. */
 function RoletaNomes({ nomes }: { nomes: readonly string[] }) {

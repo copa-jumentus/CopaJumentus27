@@ -102,6 +102,12 @@ test('cerimônia: sorteia, revela todos e oficializa no campeonato', async () =>
   await page.getByRole('button', { name: /Sortear goleiro/ }).click();
   await page.getByRole('button', { name: /Sortear time/ }).click();
 
+  // Modo automático: o próximo goleiro sai sozinho, nome e time; depois pausa.
+  await page.getByRole('button', { name: 'Modo automático' }).click();
+  await expect(page.locator('body')).toContainText('#2', { timeout: 15_000 });
+  await page.getByRole('button', { name: 'Pausar automático' }).click();
+  await expect(page.getByRole('button', { name: 'Modo automático' })).toBeVisible();
+
   // O resto pela tecla Espaço (como o operador no projetor) até o fim.
   const oficializar = page.getByRole('button', { name: 'Oficializar no campeonato' });
   for (let i = 0; i < 200 && !(await oficializar.isVisible()); i++) {

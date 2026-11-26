@@ -4,7 +4,7 @@ import { Premiacao } from '@/components/campeonato/Premiacao';
 import { Cabecalho, Cartao, Escudo, Secao, Vazio } from '@/components/campeonato/ui';
 import { fundoVisivel } from '@/lib/campeonato/cores';
 import { indices } from '@/lib/campeonato/consultas';
-import { artilharia, assistencias, cartoes, goleiros, penalidades } from '@/lib/domain/campeonato/rankings';
+import { artilharia, assistencias, cartoes, goleiros } from '@/lib/domain/campeonato/rankings';
 import type { Campeonato, LinhaRankingManual } from '@/lib/domain/campeonato/tipos';
 
 export function PaginaRankings({ c, base, fase }: { c: Campeonato; base: string; fase?: string }) {
@@ -160,39 +160,6 @@ export function PaginaRankings({ c, base, fase }: { c: Campeonato; base: string;
             ),
           },
           {
-            id: 'penalidades',
-            titulo: 'Penalidades',
-            conteudo: (
-              <Secao titulo="Penalidades">
-                {lista(
-                  penalidades(partidas).map((x) => ({
-                    jogadorId: x.jogadorId,
-                    valor: x.convertidos,
-                    detalhe: `${x.convertidos} ${x.convertidos === 1 ? 'convertido' : 'convertidos'} · ${x.perdidos} ${x.perdidos === 1 ? 'perdido' : 'perdidos'}`,
-                  })),
-                  'Nenhum pênalti cobrado em jogo.',
-                )}
-              </Secao>
-            ),
-          },
-          {
-            id: 'goleiros',
-            titulo: 'Goleiros',
-            conteudo: (
-              <Secao titulo="Goleiros">
-                {lista(
-                  goleiros(partidas, c.jogadores).map((g) => ({
-                    jogadorId: g.jogadorId,
-                    valor: g.media.toLocaleString('pt-BR'),
-                    detalhe: `${g.golsSofridos} sofridos em ${g.jogos} ${g.jogos === 1 ? 'jogo' : 'jogos'} · ${g.semSofrerGol} sem sofrer gol · ${g.defesas} ${g.defesas === 1 ? 'defesa' : 'defesas'}`,
-                  })),
-                  'Nenhum jogo encerrado com goleiro definido.',
-                )}
-                <p className="mt-2 text-xs text-text-3">Número grande: média de gols sofridos por jogo (menos é melhor).</p>
-              </Secao>
-            ),
-          },
-          {
             id: 'cartoes',
             titulo: 'Cartões',
             conteudo: (
@@ -211,6 +178,23 @@ export function PaginaRankings({ c, base, fase }: { c: Campeonato; base: string;
                   'Nenhum cartão registrado.',
                   false,
                 )}
+              </Secao>
+            ),
+          },
+          {
+            id: 'goleiros',
+            titulo: 'Goleiros',
+            conteudo: (
+              <Secao titulo="Goleiros">
+                {lista(
+                  goleiros(partidas, c.jogadores).map((g) => ({
+                    jogadorId: g.jogadorId,
+                    valor: g.media.toLocaleString('pt-BR'),
+                    detalhe: `${g.golsSofridos} sofridos em ${g.jogos} ${g.jogos === 1 ? 'jogo' : 'jogos'} · ${g.semSofrerGol} sem sofrer gol · ${g.defesas} ${g.defesas === 1 ? 'defesa' : 'defesas'}`,
+                  })),
+                  'Nenhum jogo encerrado com goleiro definido.',
+                )}
+                <p className="mt-2 text-xs text-text-3">Número grande: média de gols sofridos por jogo (menos é melhor).</p>
               </Secao>
             ),
           },
