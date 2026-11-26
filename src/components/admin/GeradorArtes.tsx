@@ -36,7 +36,6 @@ type IdSecao =
   | 'elencos'
   | 'mata-mata'
   | 'melhor'
-  | 'craque'
   | 'selecao'
   | 'campeao'
   | 'regulamento'
@@ -58,7 +57,6 @@ const SECOES: Array<{ id: IdSecao; nome: string; miniatura: string }> = [
   { id: 'elencos', nome: 'Elencos', miniatura: '/imagens/fundos/time-inter-miami-feed.webp' },
   { id: 'mata-mata', nome: 'Mata-mata', miniatura: '/imagens/fundos/mata-mata-feed.webp' },
   { id: 'melhor', nome: 'Melhor da partida', miniatura: '/imagens/fundos/melhor-da-partida-feed.webp' },
-  { id: 'craque', nome: 'Craque do jogo (foto)', miniatura: '/imagens/fundos/craque-do-jogo-stories.webp' },
   { id: 'selecao', nome: 'Seleção da Copa', miniatura: '/imagens/fundos/campo-feed.webp' },
   { id: 'campeao', nome: 'Campeão', miniatura: '/imagens/fundos/campeao-feed.webp' },
   { id: 'regulamento', nome: 'Regulamento', miniatura: '/imagens/fundos/regulamento-feed.webp' },
@@ -324,15 +322,9 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
         if (todas) return { pecas: [] };
         if (jogosMelhor.length === 0) return { pecas: [], motivo: 'Nenhum jogo desta rodada começou ainda.' };
         const dados = jogador ? melhorDaPartidaArte(c, jogoMelhor, jogador) : null;
-        return dados ? { pecas: [{ tipo: 'melhor', dados }] } : { pecas: [], motivo: 'Escolha o jogador.' };
-      }
-      case 'craque': {
-        if (todas) return { pecas: [] };
-        if (jogosMelhor.length === 0) return { pecas: [], motivo: 'Nenhum jogo desta rodada começou ainda.' };
-        const dados = jogador ? melhorDaPartidaArte(c, jogoMelhor, jogador) : null;
         if (!dados) return { pecas: [], motivo: 'Escolha o jogador.' };
-        if (!foto) return { pecas: [], motivo: 'Anexe a foto do jogador.' };
-        return { pecas: [{ tipo: 'craque', dados, foto: foto.url }] };
+        // Com foto, vira o stories "Craque do jogo"; sem foto, a arte do holofote.
+        return foto ? { pecas: [{ tipo: 'craque', dados, foto: foto.url }] } : { pecas: [{ tipo: 'melhor', dados }] };
       }
       case 'selecao': {
         if (todas) return { pecas: [] };
@@ -357,7 +349,7 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
   const atual = pecasDa(secao, false);
   const itens = expandir(atual.pecas, formato);
   const previas = itens.slice(0, 6);
-  const temFormato = !['selecao', 'regulamento', 'divulgacao', 'craque'].includes(secao);
+  const temFormato = !['selecao', 'regulamento', 'divulgacao'].includes(secao) && !(secao === 'melhor' && foto);
 
   async function gerar(lista: Item[], nomeZip: string, compartilhar: boolean) {
     if (lista.length === 0) return;
@@ -414,9 +406,7 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
       case 'mata-mata':
         return `O mata-mata da ${assinatura}. ${tag}`;
       case 'melhor':
-        return `Melhor da partida. ${tag}`;
-      case 'craque':
-        return `Craque do jogo: ${c.jogadores.find((j) => j.id === jogador)?.nome ?? ''}. Oferecimento EM Empreendimentos. ${tag}`;
+        return `${foto ? 'Craque do jogo' : 'Melhor da partida'}: ${c.jogadores.find((j) => j.id === jogador)?.nome ?? ''}. Oferecimento EM Empreendimentos. ${tag}`;
       case 'selecao':
         return `A Seleção da ${assinatura}. ${tag}`;
       case 'campeao':
@@ -452,13 +442,13 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
         </button>
       </div>
       <p className="text-xs text-text-3">
-        &ldquo;Todas as artes&rdquo; junta cada seção com os dados de agora. Melhor da partida, Craque do jogo e Seleção da Copa ficam de fora, porque dependem da escolha de vocês.
+        &ldquo;Todas as artes&rdquo; junta cada seção com os dados de agora. Melhor da partida e Seleção da Copa ficam de fora, porque dependem da escolha de vocês.
       </p>
 
       <nav aria-label="Seções de artes" className="-mr-4 overflow-x-auto pr-4 [scrollbar-width:none]">
         <ul className="grid w-max grid-flow-col gap-2 sm:w-auto sm:grid-flow-row sm:grid-cols-4 lg:grid-cols-6">
           {SECOES.map((s) => {
-            const desligada = !['melhor', 'craque', 'selecao'].includes(s.id) && pecasDa(s.id, true).pecas.length === 0;
+            const desligada = !['melhor', 'selecao'].includes(s.id) && pecasDa(s.id, true).pecas.length === 0;
             return (
               <li key={s.id}>
                 <button
@@ -483,7 +473,7 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
 
       <section className="hud-card hud-clip modulo relative grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]" aria-label={SECOES.find((s) => s.id === secao)?.nome}>
         <div className="space-y-5">
-          {(secao === 'resultados' || secao === 'melhor' || secao === 'craque') && (
+          {(secao === 'resultados' || secao === 'melhor') && (
             <>
               <Passo n={p()} titulo="Rodada">
                 <Opcoes
@@ -537,7 +527,7 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
                   </Passo>
                   {jogosMelhor.length > 0 && (
                     <Passo n={p()} titulo="Jogador">
-                      <select className="campo w-full" value={jogador} onChange={(e) => setJogador(e.target.value)} aria-label="Melhor da partida">
+                      <select className="campo w-full" value={jogador} onChange={(e) => setJogador(e.target.value)} aria-label="Jogador">
                         <option value="">Escolha o melhor em campo</option>
                         {jogadoresMelhor.map((j) => (
                           <option key={j.id} value={j.id}>
@@ -547,8 +537,9 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
                       </select>
                     </Passo>
                   )}
-                  {secao === 'craque' && jogosMelhor.length > 0 && (
-                    <Passo n={p()} titulo="Foto">
+                  {jogosMelhor.length > 0 && (
+                    <Passo n={p()} titulo="Foto (opcional)">
+                      <div className="flex flex-wrap gap-2">
                       <label className="btn-hud inline-flex cursor-pointer">
                         {foto ? 'Trocar a foto' : 'Anexar a foto'}
                         <input
@@ -562,8 +553,17 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
                           }}
                         />
                       </label>
+                      {foto && (
+                        <button type="button" className="btn-mini" onClick={() => setFoto(null)}>
+                          Tirar a foto
+                        </button>
+                      )}
+                      </div>
                       <p className="mt-2 text-xs text-text-3">
-                        {foto ? `${foto.nome}. ` : ''}Foto em pé, com o jogador centralizado: a moldura corta um pouco das laterais. A foto fica só neste navegador.
+                        {foto
+                          ? `${foto.nome}: sai o stories "Craque do jogo", com a foto e o nome. `
+                          : 'Sem foto, sai a arte do holofote, em feed e stories. Com foto, sai o stories "Craque do jogo". '}
+                        Foto em pé, com o jogador centralizado. Ela fica só neste navegador.
                       </p>
                     </Passo>
                   )}

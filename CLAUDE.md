@@ -368,14 +368,13 @@ Pedido do operador em 19/11/2026: "o botão de gerar a arte já pronta, pra feed
   | Artilharia e Assistências | agora ou até uma rodada → top 5 ou top 7 → formato |
   | Elencos | os 8 ou um time → formato |
   | Mata-mata | formato (só no modelo oficial) |
-  | Melhor da partida | rodada → jogo → jogador (escolhido na hora, não é gravado) → formato |
-  | Craque do jogo (foto) | rodada → jogo → jogador → **foto anexada na hora** (fica só no navegador, nunca sobe para o servidor); só stories, com o **nome** do jogador (não o @ do Instagram; decisão do operador em 25/11/2026) |
+  | Melhor da partida | rodada → jogo → jogador (escolhido na hora, não é gravado) → foto opcional → formato. **Sem foto:** arte do holofote com o escudo, feed e stories. **Com foto** (anexada na hora; fica só no navegador, nunca sobe para o servidor): stories "Craque do jogo" com a foto e o **nome** do jogador, não o @ do Instagram. Uma seção só por decisão do operador em 25/11/2026 ("junte") |
   | Seleção da Copa | goleiro e 7 de linha (escolhidos na hora, não é gravado) e o texto do topo; só feed |
   | Campeão | formato; libera quando a final termina |
   | Regulamento | página (carrossel), de `montarRegulamento`; só feed |
   | Divulgação | peças fixas já aprovadas (anúncio, premiação, sorteio, patrocínio), de `public/imagens/divulgacao/` |
 
-  "Todas as artes" junta cada seção com os dados de agora; Melhor da partida, Craque do jogo e Seleção ficam de fora (dependem da escolha). O .zip é montado sem dependência (`lib/zip.ts`, método store, testado).
+  "Todas as artes" junta cada seção com os dados de agora; Melhor da partida e Seleção ficam de fora (dependem da escolha). O .zip é montado sem dependência (`lib/zip.ts`, método store, testado).
 - **Dados** em `lib/domain/campeonato/artes.ts` (puro, testado): `blocosDeJogos`, `jogoArte`, `rankingArte` (com corte por rodada), `classificacaoArte` (zona pela linha da tabela, empatados dividem a posição), `diasArte`, `elencosArte` (goleiro, capitão, depois alfabético), `chaveArte` (J29–J34), `campeaoArte` (pódio), `melhorDaPartidaArte`, `jogadorSelecaoArte`, `partidasAte`.
 - **Desenho** em `components/artes/pecas.ts`, canvas 2D no navegador (sem dependência), com as fontes do site (`--font-*`), o brasão oficial, os escudos oficiais e a EM sempre sobre placa clara. **Fundos** prontos em `public/imagens/fundos/` (só atmosfera: céu, campo, holofote, cores dos times; gerados à parte e aprovados pelo operador): `resultados`, `classificacao`, `campo`, `noite` (rankings), `time-<slug>` (elencos, pelo nome do arquivo do escudo), `mata-mata`, `melhor-da-partida`, `campeao`, `regulamento`, cada um em `-feed` e `-stories`, e `craque-do-jogo` (só stories). Tudo o que muda com o resultado (módulos marinho com canto cortado e filete dourado, placar, nomes) é desenhado por cima, na grade do manual (margem 80; no stories, conteúdo entre y 250 e 1580). O estilo "céu desenhado no canvas" de 25/11 (`cenaViceCity`) saiu junto com `desenho.ts`.
 - **Arte de cada jogo** também é **pública**, no fim da página do jogo (`BaixarArteJogo`, usa `arteDoJogo` de `pecas.ts`): "Fim de jogo", "Ao vivo" ou "Próximo jogo", escudos e placar grandes, pênaltis no mata-mata e os gols de cada lado com minuto ("(pên.)", "(contra)" do lado de quem ganhou o gol).
