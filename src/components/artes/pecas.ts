@@ -30,6 +30,8 @@ export type Peca =
   | { tipo: 'elenco'; dados: ElencoArte }
   | { tipo: 'chave'; chave: Record<number, JogoArte> }
   | { tipo: 'melhor'; dados: MelhorDaPartidaArte }
+  /** Craque do jogo com a foto do jogador, anexada na hora (URL local do arquivo); só stories. */
+  | { tipo: 'craque'; dados: MelhorDaPartidaArte; foto: string }
   | { tipo: 'selecao'; jogadores: JogadorSelecaoArte[]; subtitulo: string }
   | { tipo: 'campeao'; dados: CampeaoArte }
   | { tipo: 'regulamento'; paginas: SecaoRegulamento[][]; pagina: number }
@@ -660,6 +662,53 @@ async function pecaMelhor(ctx: Ctx, F: Fontes, f: Formato, m: MelhorDaPartidaArt
   }
 }
 
+/** Imagem cortada para cobrir a área inteira (como `object-fit: cover`). */
+function imagemCobrindo(ctx: Ctx, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  const r = Math.max(w / img.naturalWidth, h / img.naturalHeight);
+  const iw = img.naturalWidth * r;
+  const ih = img.naturalHeight * r;
+  // Corta mais embaixo que em cima: na foto em pé, a cabeça fica no terço de cima.
+  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) * 0.35, iw, ih);
+}
+
+/** Craque do jogo (stories): foto do jogador numa moldura, nome e placar embaixo, EM abaixo. */
+async function pecaCraque(ctx: Ctx, F: Fontes, m: MelhorDaPartidaArte, foto: string) {
+  const f: Formato = 'story';
+  await fundo(ctx, 'craque-do-jogo', f, 'resultados');
+  escrever(ctx, 'CRAQUE DO JOGO', L / 2, 222, `118px ${F.titulo}`, '', { alinhar: 'center', dourado: true, sombra: true, max: L - 2 * M });
+  const [x0, y0, x1, y1] = [97, 384, 983, 1478];
+  const w = x1 - x0;
+  const h = y1 - y0;
+  ctx.save();
+  caminhoCorte(ctx, x0 - 8, y0 - 8, w + 16, h + 16, 44);
+  ctx.fillStyle = COR.marinho;
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  caminhoCorte(ctx, x0, y0, w, h, 38);
+  ctx.clip();
+  const img = await carregarImagem(foto);
+  if (img) imagemCobrindo(ctx, img, x0, y0, w, h);
+  else retangulo(ctx, x0, y0, w, h, COR.profundo);
+  const sombra = ctx.createLinearGradient(0, y1 - 300, 0, y1);
+  sombra.addColorStop(0, 'rgba(6,18,42,0)');
+  sombra.addColorStop(1, 'rgba(6,18,42,0.94)');
+  ctx.fillStyle = sombra;
+  ctx.fillRect(x0, y1 - 300, w, 300);
+  ctx.restore();
+  retangulo(ctx, x0 - 8, y1 + 8, w + 16, 6, ouro(ctx, x0 - 8, y1 + 8, w + 16, 6));
+  const logo = await carregarImagem(LOGO);
+  if (logo) imagemContida(ctx, logo, x1 - 110, y0 + 24, 86, (logo.naturalHeight / logo.naturalWidth) * 86, true);
+
+  const j = m.jogo;
+  const quando = `${j.rotulo}${j.numero !== undefined ? ` · Jogo ${j.numero}` : ''}`;
+  escrever(ctx, quando.toUpperCase(), x0 + 34, y1 - 214, `700 26px ${F.rotulo}`, COR.areia, { tr: 3.5 });
+  escrever(ctx, m.nome.toUpperCase(), x0 + 34, y1 - 178, `92px ${F.titulo}`, COR.texto, { max: w - 68, sombra: true });
+  const placar = j.golsMandante !== undefined ? `${j.mandante.nome} ${j.golsMandante} × ${j.golsVisitante} ${j.visitante.nome}` : `${j.mandante.nome} × ${j.visitante.nome}`;
+  escrever(ctx, placar.toUpperCase(), x0 + 34, y1 - 70, `700 30px ${F.rotulo}`, COR.texto, { tr: 1.5, max: w - 68 });
+  await placaEM(ctx, F, 340, 1556, 400, 108, 'Oferecimento', 24, COR.profundo);
+}
+
 /** Seleção da Copa no campo, 1 goleiro e 7 de linha (3-3-1). */
 const POSICOES_SELECAO: ReadonlyArray<[number, number]> = [
   [540, 1140],
@@ -802,6 +851,7 @@ async function esperarFontes(F: Fontes) {
 /** Formatos em que a peça existe. */
 export function formatosDa(p: Peca): Formato[] {
   if (p.tipo === 'selecao' || p.tipo === 'regulamento') return ['feed'];
+  if (p.tipo === 'craque') return ['story'];
   if (p.tipo === 'divulgacao') return [p.formato];
   return ['feed', 'story'];
 }
@@ -831,6 +881,8 @@ export async function desenharPeca(canvas: HTMLCanvasElement, p: Peca, f: Format
       return pecaChave(ctx, F, f, p.chave, assinatura);
     case 'melhor':
       return pecaMelhor(ctx, F, f, p.dados, assinatura);
+    case 'craque':
+      return pecaCraque(ctx, F, p.dados, p.foto);
     case 'selecao':
       return pecaSelecao(ctx, F, p.jogadores, p.subtitulo);
     case 'campeao':
@@ -864,6 +916,8 @@ export function nomeDaPeca(p: Peca, f: Formato): string {
         return 'mata-mata';
       case 'melhor':
         return `melhor-da-partida-${p.dados.jogo.numero !== undefined ? `j${p.dados.jogo.numero}-` : ''}${p.dados.nome}`;
+      case 'craque':
+        return `craque-do-jogo-${p.dados.jogo.numero !== undefined ? `j${p.dados.jogo.numero}-` : ''}${p.dados.nome}`;
       case 'selecao':
         return 'selecao-da-copa';
       case 'campeao':

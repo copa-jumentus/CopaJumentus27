@@ -262,6 +262,15 @@ test('artes: seções com escolhas, prévias e download', async () => {
   await page.getByRole('radio', { name: 'Só stories' }).click();
   const [ranking] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
   expect(ranking.suggestedFilename()).toBe('copa-jumentus-artilharia-stories.png');
+
+  // Craque do jogo: escolhe o jogador e anexa a foto; sai só em stories, com o nome.
+  await page.getByRole('button', { name: 'Craque do jogo (foto)' }).click();
+  await expect(page.getByText('Escolha o jogador.')).toBeVisible();
+  await page.getByLabel('Melhor da partida').selectOption({ index: 1 });
+  await expect(page.getByText('Anexe a foto do jogador.')).toBeVisible();
+  await page.setInputFiles('input[type=file]', path.join(__dirname, '..', 'public', 'imagens', 'escudos', 'inter-miami.webp'));
+  const [craque] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
+  expect(craque.suggestedFilename()).toMatch(/^copa-jumentus-craque-do-jogo-j\d+-[a-z0-9-]+-stories\.png$/);
 });
 
 test('conta de mesário: só entra no Modo Mesário', async ({ browser, baseURL }) => {
