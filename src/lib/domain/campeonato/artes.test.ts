@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { blocosDeJogos, rankingArte } from './artes';
+import {
+  blocosDeJogos,
+  campeaoArte,
+  chaveArte,
+  classificacaoArte,
+  diasArte,
+  elencosArte,
+  gruposArte,
+  jogadoresDaPartida,
+  melhorDaPartidaArte,
+  partidasAte,
+  rankingArte,
+} from './artes';
 import { aplicarChaveamento } from './chaveamento';
 import { aplicarModelo } from './modelo';
 import { CRITERIOS_PADRAO, type Campeonato, type EventoPartida } from './tipos';
@@ -112,5 +124,71 @@ describe('artes do Instagram', () => {
       [1, 'A', 2],
       [2, 'H', 1],
     ]);
+  });
+
+  it('ranking e classificação podem parar numa rodada', () => {
+    const c = campeonato();
+    const j1 = c.partidas.find((p) => p.numero === 1)!;
+    const j5 = c.partidas.find((p) => p.numero === 5)!;
+    Object.assign(j1, { status: 'encerrada', golsMandante: 1, golsVisitante: 0, eventos: [gol(`${j1.mandanteId}1`)] });
+    Object.assign(j5, { status: 'encerrada', golsMandante: 2, golsVisitante: 0, eventos: [gol(`${j5.mandanteId}1`), gol(`${j5.mandanteId}1`)] });
+    const [r1] = blocosDeJogos(c);
+    expect(partidasAte(c, r1.id)).toHaveLength(4);
+    expect(rankingArte(c, 'artilharia', 8, r1.id).itens).toHaveLength(1);
+    expect(rankingArte(c, 'artilharia').itens).toHaveLength(2);
+
+    const [g] = gruposArte(c);
+    expect(g.nome).toBe('Grupo Único');
+    const ate1 = classificacaoArte(c, g.id, r1.id)!;
+    expect(ate1.momento).toBe('Durante a Rodada 1');
+    expect(ate1.linhas[0]).toMatchObject({ posicao: 1, pontos: 3, equipe: { id: j1.mandanteId }, zona: 'semifinal' });
+    expect(ate1.linhas.map((l) => l.zona)).toEqual(['semifinal', 'semifinal', 'repescagem', 'repescagem', 'repescagem', 'repescagem', 'eliminado', 'eliminado']);
+    expect(ate1.zonas.map((z) => z.texto)).toEqual(['1º e 2º · semifinal', '3º ao 6º · repescagem', '7º e 8º · eliminados']);
+    expect(classificacaoArte(c, g.id)!.momento).toBe('Durante a Rodada 2');
+    expect(classificacaoArte(campeonato(), g.id)!.momento).toBe('Antes da Rodada 1');
+  });
+
+  it('programação: jogos agrupados por data, em ordem de horário', () => {
+    const c = campeonato();
+    c.partidas.forEach((p) => (p.dataHora = undefined));
+    const [a, b, d] = [1, 2, 20].map((n) => c.partidas.find((p) => p.numero === n)!);
+    a.dataHora = '2027-01-16T16:21';
+    b.dataHora = '2027-01-16T16:00';
+    d.dataHora = '2027-01-17T16:00';
+    const dias = diasArte(c);
+    expect(dias.map((x) => x.titulo)).toEqual(['Sábado · 16 de janeiro', 'Domingo · 17 de janeiro', 'Dia 1', 'Dia 2']);
+    expect(dias[0].jogos.map((j) => j.numero)).toEqual([2, 1]);
+  });
+
+  it('elenco: goleiro primeiro, depois o capitão', () => {
+    const c = campeonato();
+    c.jogadores.push({ id: 'a3', nome: 'Zé Goleiro', equipeId: 'a', posicao: 'GOL', pago: false });
+    c.equipes[0].capitaoId = 'a2';
+    c.equipes[0].escudo = '/imagens/escudos/inter-miami.webp';
+    const [a] = elencosArte(c);
+    expect(a.equipe.slug).toBe('inter-miami');
+    expect(a.jogadores.map((j) => [j.nome, j.goleiro, j.capitao])).toEqual([
+      ['Zé Goleiro', true, false],
+      ['Jogador a2', false, true],
+      ['Jogador a1', false, false],
+    ]);
+  });
+
+  it('chave do mata-mata e campeão só com a final encerrada', () => {
+    const c = campeonato();
+    const chave = chaveArte(c)!;
+    expect(Object.keys(chave)).toEqual(['29', '30', '31', '32', '33', '34']);
+    expect(campeaoArte(c)).toBeNull();
+    expect(chaveArte({ ...c, modelo: 'livre' })).toBeNull();
+  });
+
+  it('melhor da partida: jogadores dos dois times e gols do escolhido', () => {
+    const c = campeonato();
+    const j1 = c.partidas.find((p) => p.numero === 1)!;
+    const m = j1.mandanteId!;
+    Object.assign(j1, { status: 'encerrada', golsMandante: 2, golsVisitante: 0, eventos: [gol(`${m}1`, `${m}2`), gol(`${m}1`)] });
+    expect(jogadoresDaPartida(c, j1.id)).toHaveLength(4);
+    expect(melhorDaPartidaArte(c, j1.id, `${m}1`)).toMatchObject({ nome: `Jogador ${m}1`, gols: 2, assistencias: 0, equipe: { id: m } });
+    expect(melhorDaPartidaArte(c, j1.id, `${m}2`)).toMatchObject({ gols: 0, assistencias: 1 });
   });
 });

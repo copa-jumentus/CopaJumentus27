@@ -2,10 +2,10 @@
 
 // Arte pronta do resultado de um jogo, para qualquer pessoa baixar ou compartilhar
 // na página pública do jogo (pedido do operador em 24/11/2026). O desenho é o
-// mesmo de Admin › Artes (components/artes/desenho.ts), feito na hora do clique.
+// mesmo de Admin › Artes (components/artes/pecas.ts), feito na hora do clique.
 
 import { useEffect, useState } from 'react';
-import { arteDoJogo, type Formato } from '@/components/artes/desenho';
+import { arteDoJogo, type Formato } from '@/components/artes/pecas';
 import type { JogoArte } from '@/lib/domain/campeonato/artes';
 
 export function BaixarArteJogo({ jogo, assinatura }: { jogo: JogoArte; assinatura: string }) {

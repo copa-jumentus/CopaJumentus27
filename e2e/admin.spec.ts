@@ -236,24 +236,32 @@ test('financeiro: começa pelo modelo da planilha e calcula o valor por atleta',
   await expect(page.locator('main')).toContainText('R$ 5.024,00 divididos por 64 atletas');
 });
 
-test('artes: prévias de feed e stories e download do PNG', async () => {
+test('artes: seções com escolhas, prévias e download', async () => {
   await irPara('/admin/artes');
-  // 3 artes da rodada + 1 por jogo já jogado da Rodada 1 (J1 e J2).
-  await expect(page.locator('canvas')).toHaveCount(5);
-  await expect(page.getByText('Resultado de cada jogo · Rodada 1')).toBeVisible();
-  const baixar = page.getByRole('button', { name: 'Baixar PNG' }).first();
-  await expect(baixar).toBeEnabled();
-  const [arquivo] = await Promise.all([page.waitForEvent('download'), baixar.click()]);
-  expect(arquivo.suggestedFilename()).toMatch(/^copa-jumentus-rodada-1-feed\.png$/);
+  // Resultados abre na última rodada com jogo, com "Todos da rodada" e feed + stories.
+  await expect(page.getByRole('radio', { name: 'Todos da rodada' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.locator('canvas')).toHaveCount(2);
+  const [zip] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar 2 PNGs (.zip)' }).click()]);
+  expect(zip.suggestedFilename()).toBe('copa-jumentus-resultados.zip');
 
-  await page.getByRole('radio', { name: /Stories/ }).click();
-  await expect(page.getByRole('button', { name: 'Baixar PNG' }).first()).toBeEnabled();
-  const [story] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).nth(1).click()]);
-  expect(story.suggestedFilename()).toBe('copa-jumentus-artilharia-story.png');
+  await page.getByRole('radio', { name: 'Só feed' }).click();
+  await expect(page.locator('canvas')).toHaveCount(1);
+  const [rodada] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
+  expect(rodada.suggestedFilename()).toBe('copa-jumentus-resultados-rodada-1-feed.png');
 
-  const doJogo = page.locator('section').filter({ hasText: /^J2 · / }).getByRole('button', { name: 'Baixar PNG' });
-  const [jogo] = await Promise.all([page.waitForEvent('download'), doJogo.click()]);
-  expect(jogo.suggestedFilename()).toMatch(/^copa-jumentus-j2-[a-z]+-x-[a-z]+-story\.png$/);
+  // Um jogo específico da rodada.
+  await page.getByRole('radio', { name: /^J2 · / }).click();
+  const [jogo] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
+  expect(jogo.suggestedFilename()).toMatch(/^copa-jumentus-j2-[a-z]+-x-[a-z]+-feed\.png$/);
+
+  await page.getByRole('button', { name: /Classificação/ }).click();
+  const [tabela] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
+  expect(tabela.suggestedFilename()).toBe('copa-jumentus-classificacao-grupo-unico-feed.png');
+
+  await page.getByRole('button', { name: /^Artilharia$/ }).click();
+  await page.getByRole('radio', { name: 'Só stories' }).click();
+  const [ranking] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Baixar PNG' }).click()]);
+  expect(ranking.suggestedFilename()).toBe('copa-jumentus-artilharia-stories.png');
 });
 
 test('conta de mesário: só entra no Modo Mesário', async ({ browser, baseURL }) => {
