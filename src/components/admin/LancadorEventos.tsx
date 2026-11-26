@@ -4,6 +4,7 @@
 // gol, toque em quem deu a assistência (ou "sem assistência"). Cada lançamento é
 // um envio da mesma ação do servidor (adicionarEvento); nada muda na regra.
 
+import { usarConfirmacao } from './usar-confirmacao';
 import { useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import type { TipoEvento } from '@/lib/domain/campeonato/tipos';
@@ -197,22 +198,19 @@ export function LancadorEventos({
   );
 }
 
-/** Apagar um evento em dois toques: o primeiro arma ("Apagar?"), o segundo confirma. */
+/** Apagar um evento em dois toques: o primeiro arma ("Apagar?") e espera; o segundo confirma. Toque fora ou Esc cancela. */
 export function BotaoRemoverEvento({ acao, partidaId, eventoId, volta }: { acao: (f: FormData) => Promise<void>; partidaId: string; eventoId: string; volta: string }) {
-  const [armado, setArmado] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
+  const { armado, setArmado, ref } = usarConfirmacao<HTMLButtonElement>();
   return (
     <form action={acao}>
       <input type="hidden" name="volta" value={volta} />
       <input type="hidden" name="partidaId" value={partidaId} />
       <input type="hidden" name="eventoId" value={eventoId} />
       <button
+        ref={ref}
         type={armado ? 'submit' : 'button'}
         onClick={() => {
-          if (armado) return;
-          setArmado(true);
-          window.clearTimeout(timer.current);
-          timer.current = window.setTimeout(() => setArmado(false), 3000);
+          if (!armado) setArmado(true);
         }}
         className="btn-mini"
         data-perigo

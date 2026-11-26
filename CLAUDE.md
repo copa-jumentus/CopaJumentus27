@@ -210,7 +210,7 @@ Tokens em `src/app/globals.css` (fonte única; o Tailwind só aponta para eles):
 - **Andamento e projeção** ficam em `lib/domain/campeonato/andamento.ts` (puro, testado).
 - **Rankings no celular:** uma categoria por vez, em abas fixas no topo (`AbasRankings`); no desktop, todas na grade.
 - **Modo Mesário** (`/admin/mesario/[id]`, `components/admin/MesarioCliente.tsx`) e **telão** (`/telao`): tela inteira, sem a barra do site (§8.11).
-- **Súmula rápida** (`components/admin/LancadorEventos.tsx`): na beira do campo, lançar é tocar no jogador, depois no evento (Gol, Gol de pênalti, Amarelo, Vermelho, Pênalti perdido, Gol contra; Defesa só para o goleiro) e, se for gol, em quem deu a assistência ou "Sem assistência". Minuto é opcional. A confirmação vem em toast com o placar. Apagar um evento pede dois toques ("Apagar?"). A regra continua toda em `adicionarEvento`/`removerEvento`.
+- **Súmula rápida** (`components/admin/LancadorEventos.tsx`): na beira do campo, lançar é tocar no jogador, depois no evento (Gol, Gol de pênalti, Amarelo, Vermelho, Pênalti perdido, Gol contra; Defesa só para o goleiro) e, se for gol, em quem deu a assistência ou "Sem assistência". Minuto é opcional. A confirmação vem em toast com o placar. Apagar um evento pede dois toques ("Apagar?"); a confirmação fica armada até o segundo toque, sem tempo limite, e toque fora ou Esc cancela (`usarConfirmacao`, decisão do operador em 25/11/2026; vale também para fim de tempo e apagar no mesário). A regra continua toda em `adicionarEvento`/`removerEvento`.
 - **Painel do admin:** o jogo da vez (ao vivo ou próximo) em destaque com "Abrir súmula", números do campeonato e "Na sequência".
 - **Cerimônia projetada:** sem a barra do site; controles discretos no canto ("Tela cheia" e "Voltar" ao sorteio). Espaço avança um passo (nome, depois time); seta esquerda volta um passo. Com `prefers-reduced-motion`, as roletas (nome e time) não rodam.
 
@@ -310,6 +310,7 @@ Nunca introduza visual corporativo/SaaS genérico, biblioteca de componentes com
 - Gol registrado na súmula soma no placar (gol contra soma para o adversário); remover o evento desconta.
 - Os botões + e − ajustam gols sem autor e pênaltis.
 - Eventos: `gol`, `gol_penalti` (pênalti convertido durante o jogo, soma no placar e na artilharia), `gol-contra`, `penalti_perdido`, `amarelo`, `vermelho`, `defesa` (só do goleiro registrado na partida). A disputa de pênaltis é só placar (`penaltis_mandante/visitante`).
+- **Cartões no mesmo jogo** (decisão do operador em 25/11/2026: "está dando pra colocar vários cartões pro mesmo cara"): quem já levou vermelho não recebe outro cartão, e ninguém passa de dois amarelos. A regra é `problemaDoCartao` em `sumula.ts` (testada), usada pela súmula completa e pelo Modo Mesário; o erro aparece na tela.
 - **Goleiro de cada lado** (`partida.goleiro_mandante_id`/`goleiro_visitante_id`), escolhido na súmula; sem registro, vale o único GOL do elenco, se houver um só.
 - Classificação e rankings são calculados das partidas (`lib/domain/campeonato/`); só jogos **encerrados** entram na tabela.
 - **Rankings** (com filtro por fase): artilharia, assistências, penalidades (convertidos/perdidos), goleiros (gols sofridos, média, jogos sem sofrer gol, defesas; só jogos encerrados) e cartões.

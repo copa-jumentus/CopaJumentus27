@@ -35,6 +35,20 @@ export function ladoDoGol(p: Pick<Partida, 'mandanteId'>, tipo: TipoEvento, equi
   return ladoQueMarca(tipo, equipeId === p.mandanteId ? 'mandante' : 'visitante');
 }
 
+/**
+ * Cartão que não pode entrar (decisão do operador em 25/11/2026: "está dando pra
+ * colocar vários cartões pro mesmo cara"): quem levou vermelho já saiu do jogo e
+ * não recebe mais cartão; ninguém tem mais de dois amarelos no mesmo jogo.
+ * Devolve a mensagem do erro, ou null quando o cartão pode entrar.
+ */
+export function problemaDoCartao(p: Pick<Partida, 'eventos'>, jogadorId: string, tipo: TipoEvento, nome: string): string | null {
+  if (tipo !== 'amarelo' && tipo !== 'vermelho') return null;
+  const dele = p.eventos.filter((e) => e.jogadorId === jogadorId);
+  if (dele.some((e) => e.tipo === 'vermelho')) return `${nome} já levou vermelho neste jogo e não recebe outro cartão.`;
+  if (tipo === 'amarelo' && dele.filter((e) => e.tipo === 'amarelo').length >= 2) return `${nome} já tem dois amarelos neste jogo.`;
+  return null;
+}
+
 export interface DadosEvento {
   /** Id do evento. O mesário manda o seu (gerado no celular): repetir o mesmo id não lança de novo. */
   id: string;
@@ -63,6 +77,8 @@ export function lancarEvento(c: Campeonato, partidaId: string, d: DadosEvento): 
     const goleiro = jogador.equipeId === p.mandanteId ? p.goleiroMandanteId : p.goleiroVisitanteId;
     if (goleiro && goleiro !== jogador.id) throw new ErroDoJogo('Defesa é do goleiro registrado nesta partida.');
   }
+  const cartao = problemaDoCartao(p, jogador.id, tipo, jogador.nome);
+  if (cartao) throw new ErroDoJogo(cartao);
   const assistente = c.jogadores.find((j) => j.id === d.assistenciaId);
   p.eventos.push({
     id: d.id,

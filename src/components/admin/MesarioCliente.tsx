@@ -6,6 +6,7 @@
 // guardado e sobe sozinho quando a conexão volta, sem duplicar (cada operação tem
 // id próprio e o servidor ignora repetidas). Regras: lib/domain/campeonato/mesario.ts.
 
+import { usarConfirmacao } from './usar-confirmacao';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { lerEstadoMesario, operarMesario } from '@/app/admin/acoes-mesario';
@@ -424,14 +425,10 @@ function Time({ lado, direita = false }: { lado: LadoMesario; direita?: boolean 
 
 /** Confirmação em dois toques para o que não tem volta fácil (fim de tempo). */
 function BotaoConfirmar({ rotulo, confirmar, onClick, principal = false }: { rotulo: string; confirmar: string; onClick: () => void; principal?: boolean }) {
-  const [armado, setArmado] = useState(false);
-  useEffect(() => {
-    if (!armado) return;
-    const id = window.setTimeout(() => setArmado(false), 3000);
-    return () => window.clearTimeout(id);
-  }, [armado]);
+  const { armado, setArmado, ref } = usarConfirmacao<HTMLButtonElement>();
   return (
     <button
+      ref={ref}
       type="button"
       className={principal || armado ? 'btn-cta' : 'btn-hud'}
       onClick={() => {
@@ -629,7 +626,7 @@ function LinhaLance({
   cancelar: () => void;
   bloqueado: boolean;
 }) {
-  const [armado, setArmado] = useState(false);
+  const { armado, setArmado, ref: refApagar } = usarConfirmacao<HTMLButtonElement>();
   return (
     <li className="flex items-center gap-2 bg-[var(--surface1)] px-3 py-2 text-sm">
       <span className="numero w-8 shrink-0 text-lg text-text-3">{lance.minuto ? `${lance.minuto}'` : ''}</span>
@@ -651,15 +648,13 @@ function LinhaLance({
       ) : (
         !bloqueado && (
           <button
+            ref={refApagar}
             type="button"
             className="btn-mini"
             data-perigo={armado || undefined}
             onClick={() => {
               if (armado) apagar();
-              else {
-                setArmado(true);
-                window.setTimeout(() => setArmado(false), 3000);
-              }
+              else setArmado(true);
             }}
           >
             {armado ? 'Apagar?' : 'Apagar'}
