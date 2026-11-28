@@ -12,7 +12,7 @@ Servidas pelo Next a partir de `/imagens/...`.
 | `patrocinadores/` | Logos dos patrocinadores, enviados pelo operador; WebP com fundo transparente | Nome do arquivo = slug do patrocinador, ex.: `em-empreendimentos.webp`. No site o logo fica sobre uma placa clara (CLAUDE.md §8.8). |
 | `fundos/` | Fundos das artes geradas pelo site (Admin › Artes), só atmosfera, aprovados pelo operador em 25/11/2026 | `<peça>-feed.webp` (1080×1350) e `<peça>-stories.webp` (1080×1920); fundo de time é `time-<slug-do-escudo>-…`. Nada de texto, logo ou caixa: o código desenha por cima (CLAUDE.md §8.10). |
 | `divulgacao/` | Peças fixas prontas (anúncio, premiação, sorteio, patrocínio), baixadas em Admin › Artes › Divulgação | WebP no tamanho final; trocar a arte é trocar o arquivo. |
-| `artes/2027/` | Artes publicadas no Instagram (@c.r.jumentus), numeradas na ordem do feed (`01-teaser-feed.webp`) | WebP 1080×1350 (feed) ou 1080×1920 (stories), até ~500 KB. |
+| `artes/2027/` | Artes publicadas no Instagram (@copajumentus; até nov/2026, @c.r.jumentus), numeradas na ordem do feed (`01-teaser-feed.webp`) | WebP 1080×1350 (feed) ou 1080×1920 (stories), até ~500 KB. |
 
 O banner da home continua em `public/banner-copa-jumentus.webp` (ver CLAUDE.md §5).
 Fontes nunca entram aqui: a Pricedown não pode ser versionada (CLAUDE.md §5).

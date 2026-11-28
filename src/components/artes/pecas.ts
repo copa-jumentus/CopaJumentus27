@@ -225,7 +225,7 @@ async function cabecalho(ctx: Ctx, F: Fontes, rotulo: string, y: number, cor = C
 
 function rodape(ctx: Ctx, F: Fontes, y: number, direita: string, cor = COR.texto, fim = 1000) {
   retangulo(ctx, M, y, fim - M, 4, ouro(ctx, M, y, fim - M, 4));
-  escrever(ctx, '@C.R.JUMENTUS', M, y + 18, `700 28px ${F.rotulo}`, cor, { tr: 2 });
+  escrever(ctx, '@COPAJUMENTUS', M, y + 18, `700 28px ${F.rotulo}`, cor, { tr: 2 });
   ctx.save();
   ctx.globalAlpha = 0.85;
   escrever(ctx, direita.toUpperCase(), fim, y + 20, `700 24px ${F.rotulo}`, cor, { alinhar: 'right', tr: 1.7, max: 520 });
@@ -447,7 +447,7 @@ async function pecaProgramacao(ctx: Ctx, F: Fontes, f: Formato, p: Extract<Peca,
     if (j.numero !== undefined) escrever(ctx, `J${j.numero}`, L - M - 22, meio - 11, `700 20px ${F.rotulo}`, COR.concreto, { alinhar: 'right' });
     y += passo;
   }
-  if (st) escrever(ctx, `${assinatura} · @C.R.JUMENTUS`.toUpperCase(), L / 2, 1530, `700 28px ${F.rotulo}`, COR.texto, { alinhar: 'center', tr: 2 });
+  if (st) escrever(ctx, `${assinatura} · @COPAJUMENTUS`.toUpperCase(), L / 2, 1530, `700 28px ${F.rotulo}`, COR.texto, { alinhar: 'center', tr: 2 });
   else rodape(ctx, F, 1255, assinatura);
 }
 
@@ -554,7 +554,7 @@ async function pecaElenco(ctx: Ctx, F: Fontes, f: Formato, e: ElencoArte, assina
       escrever(ctx, 'CAPITÃO', bx + 10, meio - 10, `700 20px ${F.rotulo}`, COR.profundo, { tr: 1.4 });
     }
   }
-  if (st) escrever(ctx, `@C.R.JUMENTUS · ${assinatura}`.toUpperCase(), M, 1530, `700 26px ${F.rotulo}`, txt, { tr: 1.8 });
+  if (st) escrever(ctx, `@COPAJUMENTUS · ${assinatura}`.toUpperCase(), M, 1530, `700 26px ${F.rotulo}`, txt, { tr: 1.8 });
   else rodape(ctx, F, 1235, assinatura, txt, 760);
 }
 

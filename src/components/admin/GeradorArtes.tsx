@@ -389,7 +389,7 @@ export function GeradorArtes({ c, assinatura, regulamento }: { c: Campeonato; as
   }
 
   function legenda(): string {
-    const tag = '@c.r.jumentus';
+    const tag = '@copajumentus';
     switch (secao) {
       case 'resultados':
         return `${blocoAtual?.titulo ?? 'Resultados'} da ${assinatura}. Tabela completa em copa-jumentus.vercel.app ${tag}`;

@@ -56,7 +56,7 @@ export default async function ResultadoPage({ params }: Props) {
         <footer className="pt-12 text-center">
           <div className="filete mx-auto mb-4 max-w-xs opacity-70" aria-hidden="true" />
           <p className="hud-label text-[11px]">
-            Copa Jumentus — Vice City · @c.r.jumentus
+            Copa Jumentus — Vice City · @copajumentus
           </p>
         </footer>
       </div>

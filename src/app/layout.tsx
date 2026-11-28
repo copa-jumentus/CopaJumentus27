@@ -21,7 +21,7 @@ const bigShoulders = localFont({
 const barlowCondensed = Barlow_Condensed({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-barlow-condensed' });
 const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-barlow' });
 
-const DESCRICAO = 'Tabela, jogos, rankings e elencos da Copa Jumentus, o campeonato do @c.r.jumentus.';
+const DESCRICAO = 'Tabela, jogos, rankings e elencos da Copa Jumentus, o campeonato do @copajumentus.';
 
 // Prévia do link no WhatsApp e redes: a imagem vem de app/opengraph-image.jpg (1200×630).
 export const metadata: Metadata = {
